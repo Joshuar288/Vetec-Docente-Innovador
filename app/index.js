@@ -1,4 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
+import { Link } from 'expo-router';
 import { StyleSheet, Text, View, Image } from 'react-native';
 
 export default function App() {
@@ -8,6 +9,9 @@ export default function App() {
         Bienvenidos a VETEC
         </Text>
 
+        <Link href="/(tabs)/Caldosis" style={{ "marginTop": 20, "color": 'blue' }}>
+        Comenzar a navegar
+      </Link>
       <StatusBar style="light" />
     </View>
   );
