@@ -1,4 +1,4 @@
-import { View,Text,Button,StyleSheet,TextInput,TouchableOpacity, Pressable} from "react-native";
+import { View,Text,Button,StyleSheet,TextInput,TouchableOpacity, Pressable, ScrollView} from "react-native";
 import { StatusBar } from 'expo-status-bar';
 import { useState } from "react";
 import { useWindowDimensions } from "react-native";
@@ -33,13 +33,12 @@ export default function CalcularDosis() {
 
   const calculodosis = () => {
     /**Convertimos todos los valores puestos en lb o mg/lb en Kg y mg/kg */
-    const pesof1 = verificarLibra(unidadpeso,peso);
-    const pesof2 = verificarLibra(unidadpeso2,peso2);
+    const pesof = verificarLibra(unidadpeso,peso);
     const dosispesof = verificarVolumen(unidadgramo,dosispeso);
     const concentracionf = verificarVolumen(unidadgramo2,concentracion);
 
-    const dosispesofinal = pesof2 * dosispesof;
-    setCalculofinal(((peso * dosispesofinal)/concentracion).toFixed(2));
+    const dosispesofinal = pesof * dosispesof;
+    setCalculofinal((dosispesofinal/concentracionf).toFixed(2));
     setFinish(true);
   }
   const cambiarUnidad = (cambio,tipo) =>{
@@ -47,7 +46,8 @@ export default function CalcularDosis() {
   }
   
     return (
-        <View style={styles.container}>
+        <ScrollView style={styles.container}
+        contentContainerStyle={styles.inside_container}>
             <View style={styles.container1}>
                 <View style={styles.conteiner2}>
                     <Text style={styles.label}>
@@ -82,57 +82,37 @@ export default function CalcularDosis() {
                     </View>
                 </View>
 
-                <View style={styles.conteiner2_5}>
-                  <View style={{width: '100%', alignItems:'center'}}>
-                    <Text style={styles.label} >Indica la cantidad de dosis recomendada por cada Lb/Kg de peso</Text>
-                  </View>
-                  <View style={styles.container3}>
-                    <View style={styles.inputtext3}>
-                      <Text style={[styles.label], {textAlign: 'center'}}>
-                          Peso:
-                      </Text>
-                        <TextInput value={peso2} 
-                        onChangeText={(text) => soloNumeros(text, setPeso2)} 
+                <View style={styles.conteiner2}>
+                    <Text style={styles.label}>
+                        Indique la Cantididad de Dosis Recomendada
+                    </Text>
+                    
+                    <View style={styles.inputtext2}>
+                        <TextInput value={dosispeso} onChangeText={(text) => soloNumeros(text, setDosispeso)} 
                         style= {{
                         flex: 1, 
-                        padding: 8, 
-                        width: '50%',
+                        padding: 8,
                         borderBottomLeftRadius:10,
                         borderTopLeftRadius: 10,
+                        outlineColor:'black', 
                         outlineStyle: 'none'}} 
-                        placeholder="123" 
+                        placeholder="Escriba Aqui" 
                         placeholderTextColor={'gray'}
                         onFocus={() => setFocus(true)}
                         onBlur={() => setFocus(false)}/>
                           <TouchableOpacity 
-                            onPress={() => cambiarUnidad(setUnidadPeso2, ['lb', 'kg'])}
-                            style={{backgroundColor: '#8CD6FF', padding: 8, borderRadius: 10, width: '30%', 'alignItems': 'center', 'justifyContent': 'center' }}>
-                              <Text>{unidadpeso2}</Text>
-                          </TouchableOpacity>
-                    </View>
-                  </View>
-
-                  <View style={{'width': '5%', 'alignItems': 'center', 'justifyContent': 'center'}}>
-                    <Text>X</Text>
-                  </View>
-
-                  <View style={styles.container3}>
-                    <View style={styles.inputtext3}>
-                      <Text style={[styles.label], {textAlign: 'center'}}>
-                          Dosis:
-                      </Text>
-                        <TextInput value={dosispeso} 
-                        onChangeText={(text) => soloNumeros(text, setDosispeso)} 
-                        style= {{'flex': 1, 'padding': 8, 'width': '40%'}} 
-                        placeholder="123" 
-                        placeholderTextColor={'gray'}/>
-                          <TouchableOpacity 
                             onPress={() => cambiarUnidad(setUnidadGramo, ['mg/kg', 'mg/lb'])}
-                            style={{ backgroundColor: '#8CD6FF', padding: 8, borderRadius: 10, width: '30%', 'alignItems': 'center', 'justifyContent': 'center'}}>
-                              <Text style={styles.label3} numberOfLines={1}>{unidadgramo}</Text>
+                            style={{ 
+                            backgroundColor: '#8CD6FF', 
+                            padding: 8, 
+                            borderBottomRightRadius: 10,
+                            borderTopRightRadius: 10, 
+                            width: '15%', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',}}>
+                              <Text>{unidadgramo}</Text>
                           </TouchableOpacity>
                     </View>
-                  </View>
                 </View>
 
                 <View style={styles.conteiner2}>
@@ -143,9 +123,17 @@ export default function CalcularDosis() {
                     <View style={styles.inputtext2}>
                         <TextInput value={concentracion}
                         onChangeText={(text) => soloNumeros(text, setConcentracion)}
-                        style= {{'flex': 1, 'padding': 8}} 
+                        style= {{
+                          flex: 1, 
+                          padding: 8,
+                          borderBottomLeftRadius:10,
+                          borderTopLeftRadius: 10,
+                          outlineColor:'black', 
+                          outlineStyle: 'none'}} 
                         placeholder="Escriba Aqui" 
-                        placeholderTextColor={'gray'}/>
+                        placeholderTextColor={'gray'}
+                        onFocus={() => setFocus(true)}
+                        onBlur={() => setFocus(false)}/>
                           <TouchableOpacity 
                             onPress={() => cambiarUnidad(setUnidadGramo2, ['mg/kg', 'mg/lb'])}
                             style={{ backgroundColor: '#8CD6FF', padding: 8, borderRadius: 10, width: '15%', 'alignItems': 'center', 'justifyContent': 'center'  }}>
@@ -174,7 +162,7 @@ export default function CalcularDosis() {
             </View>
 
             <StatusBar style="light" />
-        </View>
+        </ScrollView>
         
     )
 
@@ -182,13 +170,17 @@ export default function CalcularDosis() {
 }
 
 const CreateStyles = (width,focuss,finish) => {
-  const responsive = (mobile,pc) => width < 600 ? mobile:pc;
+  const responsive = (mobile,pc) => width < 800 ? mobile:pc;
   const fo = focuss
   const fi = finish
   return StyleSheet.create({
     container: {
       flex:1,
       backgroundColor: '#fff',
+    },
+
+    inside_container: {
+      flexGrow: 1,
       alignContent: "space-between",
       alignItems: 'center',
       justifyContent:'center',
@@ -205,7 +197,8 @@ const CreateStyles = (width,focuss,finish) => {
       borderRadius:10,
       borderColor:'#ccc',
       margin:10,
-      paddingBottom: 10
+      paddingBottom: 10,
+      width: responsive('95%', '90%')
     },
 
     container1_5: {
