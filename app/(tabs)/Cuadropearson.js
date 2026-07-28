@@ -9,6 +9,7 @@ export default function CalcularDosis() {
   const styles = CreateStyles(width);
   const [proteico, setProteico] = useState('');
   const [nutreico, setNutreico] = useState('');
+  const [valDeseado, setValDeseado] = useState('');
 
   const ingredientesProteicos = [
     { label: 'DDGS CEBADA (24.9%)', value: 24.9 },
@@ -212,28 +213,30 @@ export default function CalcularDosis() {
     <View style={styles.container}>
       <View style={styles.container1}>
         <View style={styles.fila1}>
-          <View style={styles.container2}>
-            <Text>Ingrediente</Text>
+          <View style={[styles.container2, {justifyContent: 'center'}]}>
+            <Text style={{ textAlign: 'center' }}>Ingrediente</Text>
           </View>
 
           <View style={styles.container2}>
-            <Text>Proteina Bruta</Text>
+            <Text style={{ textAlign: 'center' }}>Proteina Bruta</Text>
           </View>
 
           <View style={styles.container2}>
-            <Text>Concentracion deseada</Text>
+            <Text style={{ textAlign: 'center' }}>Concentracion deseada</Text>
           </View>
 
           <View style={styles.container2}>
-            <Text>Partes</Text>
+            <Text style={{ textAlign: 'center' }}>Partes</Text>
           </View>
 
           <View style={styles.container2}>
-            <Text>Proporcion por Fuentes</Text>
+            <Text style={{ textAlign: 'center' }}>Proporcion por Fuentes</Text>
           </View>
+
+          <View style={styles.lineaseparadora} />
         </View>
 
-        <View style={styles.lineaseparadora} />
+
 
         <View style={styles.fila2}>
           <View style={styles.container2}>
@@ -250,9 +253,51 @@ export default function CalcularDosis() {
                 />
               ))}
             </Picker>
+
+            <Picker
+              style={styles.selectPicker}
+              selectedValue={nutreico}
+              onValueChange={(itemValue) => setNutreico(itemValue)}
+            >
+              {ingredientesNutreicos.map((item, index) => (
+                <Picker.Item
+                  key={index}
+                  label={item.label}
+                  value={item.value}
+                />
+              ))}
+            </Picker>
           </View>
 
-          <View style={styles.squarePearson} />
+          <View style={styles.squarePearson}>
+              <View style={styles.container3}>
+                <Text style={{ textAlign: 'center' }}> {proteico} </Text>
+                <Text style={{ textAlign: 'center' }}>{nutreico}</Text>
+              </View>
+
+              <View style={[styles.container3, {justifyContent: 'center'}]}>
+                <TextInput value={valDeseado} onChangeText={(text) => soloNumeros(text,setValDeseado)} 
+                style={{ 
+                  textAlign: 'center',
+                  borderColor: '#ccc',
+                  borderWidth: 1,
+                  borderRadius: 5,
+                  height: 30,
+                 }} />
+              </View>
+
+              <View style={styles.container3}>
+                <Text style={{ textAlign: 'center' }}> {proteico} </Text>
+                <Text style={{ textAlign: 'center' }}>{nutreico}</Text>
+              </View>              
+          </View>
+
+          <View style={styles.container2}>
+              <Text style={{ textAlign: 'center' }}> {proteico} </Text>
+              <Text style={{ textAlign: 'center' }}> {nutreico}</Text>
+          </View>
+
+          
         </View>
       </View>
 
@@ -274,9 +319,7 @@ const CreateStyles = (width) => {
     },
 
     container1: {
-      height: "auto",
       gap: 10,
-      justifyContent: "space-around",
       alignItems: 'start',
       borderWidth:1,
       borderRadius:10,
@@ -284,7 +327,7 @@ const CreateStyles = (width) => {
       margin:10,
       paddingBottom: 10,
       width: '95%',
-
+      height:'80%',
     },
 
     fila1: {
@@ -296,20 +339,33 @@ const CreateStyles = (width) => {
     },
       
     fila2: {
-      width: '100%',
-      justifyContent: "space-around",
+      width: '95%',
+      height: "50%",
+      justifyContent: "space-between",
       marginLeft: 37,
+      flexDirection:'row',
     },
 
     container2: {
       width: '15%',
-      height: "auto",
       borderColor: '#ccc',
       borderWidth:1,
+      justifyContent: "space-between",
+      margin: 5,
+    },
+
+    container3: {
+      width: '15%',
+      height: '90%',
+      borderColor: '#ccc',
+      borderWidth:1,
+      justifyContent: "space-between",
+      margin: 10,
+      textAlign: 'center',
     },
 
     lineaseparadora: {
-      width: '95%',
+      width: '100%',
       height: 0,
       borderColor: '#ccc',
       borderWidth:1,
@@ -321,11 +377,14 @@ const CreateStyles = (width) => {
     },
 
     squarePearson: {
-      width: 40,
-      height: 40,
+      width: "55%",
+      height: "100%",
       borderColor: '#ccc',
       borderWidth: 1,
       marginLeft: 10,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
     }
   });
 }
