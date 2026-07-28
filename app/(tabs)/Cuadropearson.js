@@ -207,70 +207,58 @@ export default function CalcularDosis() {
   const cambiarUnidad = (cambio,tipo) =>{
     cambio((anterior) => (anterior === tipo[0] ? tipo[1]:tipo[0]))
   }
-  
-    return (
-        <View style={styles.container}>
-            <View style={styles.container1}>
-              <View style={styles.fila1}>
-                <View style={styles.container2}>
-                  <Text>Ingrediente</Text>
-                </View>
 
-                <View style={styles.container2}>
-                  <Text>Proteina Bruta</Text>
-                </View>
+  return (
+    <View style={styles.container}>
+      <View style={styles.container1}>
+        <View style={styles.fila1}>
+          <View style={styles.container2}>
+            <Text>Ingrediente</Text>
+          </View>
 
-                <View style={styles.container2}>
-                  <Text>Concentracion deseada</Text>
-                </View>
+          <View style={styles.container2}>
+            <Text>Proteina Bruta</Text>
+          </View>
 
-                <View style={styles.container2}>
-                  <Text>Partes</Text>
-                </View>
+          <View style={styles.container2}>
+            <Text>Concentracion deseada</Text>
+          </View>
 
-                <View style={styles.container2}>
-                  <Text>Proporcion por Fuentes</Text>
-                </View>
+          <View style={styles.container2}>
+            <Text>Partes</Text>
+          </View>
 
-                <View style={styles.lineaseparadora}>  
-
-                </View>
-              </View>
-
-              <View style={styles.fila2}>
-                <View style={styles.container2}>
-                  <Picker style={styles.selectPicker}
-                    selectedValue={proteico}
-                    onValueChange={(itemValue) => setProteico(itemValue)}
-                  >
-                    {ingredientesProteicos.map((item, index) => (
-                      <Picker.Item
-                        key={index}
-                        label={item.label}
-                        value={item.value}
-                      />
-                    ))}
-                  </Picker>
-                </View>
-
-                <View style={styles.squarePearson}>
-                </View>
-
-                <View style={styles.container2}>
-              </View>
-            </View>
-
-
-
-
-
-
-            <StatusBar style="light" />
+          <View style={styles.container2}>
+            <Text>Proporcion por Fuentes</Text>
+          </View>
         </View>
-        
-    )
 
+        <View style={styles.lineaseparadora} />
 
+        <View style={styles.fila2}>
+          <View style={styles.container2}>
+            <Picker
+              style={styles.selectPicker}
+              selectedValue={proteico}
+              onValueChange={(itemValue) => setProteico(itemValue)}
+            >
+              {ingredientesProteicos.map((item, index) => (
+                <Picker.Item
+                  key={index}
+                  label={item.label}
+                  value={item.value}
+                />
+              ))}
+            </Picker>
+          </View>
+
+          <View style={styles.squarePearson} />
+        </View>
+      </View>
+
+      <StatusBar style="light" />
+    </View>
+  );
 }
 
 const CreateStyles = (width) => {
@@ -330,6 +318,14 @@ const CreateStyles = (width) => {
     selectPicker: {
       height: 40,
       width: '100%',
+    },
+
+    squarePearson: {
+      width: 40,
+      height: 40,
+      borderColor: '#ccc',
+      borderWidth: 1,
+      marginLeft: 10,
     }
   });
 }
