@@ -368,7 +368,7 @@ const CreateStyles = (width) => {
       margin:10,
       paddingBottom: 10,
       minWidth: 980,
-      minHeight: 400,
+      minHeight: 300,
       width: '95%',
       height:'50%',
     },
