@@ -1,8 +1,9 @@
-import { View,Text,Button,StyleSheet,TextInput,TouchableOpacity, Pressable} from "react-native";
+import { View,Text,Button,StyleSheet,TextInput,TouchableOpacity, Pressable, ScrollView} from "react-native";
 import { StatusBar } from 'expo-status-bar';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useWindowDimensions } from "react-native";
 import { Picker } from '@react-native-picker/picker';
+import * as ScreenOrientation from 'expo-screen-orientation';
 
 export default function CalcularDosis() {
   const {width} = useWindowDimensions();
@@ -10,6 +11,10 @@ export default function CalcularDosis() {
   const [proteico, setProteico] = useState('');
   const [nutreico, setNutreico] = useState('');
   const [valDeseado, setValDeseado] = useState('');
+  const [parteProteico, setParteProteico] = useState('');
+  const [parteNutreico, setParteNutreico] = useState('');
+  const [proporcionProteico, setProporcionProteico] = useState('');
+  const [proporcionNutreico, setProporcionNutreico] = useState('');
 
   const ingredientesProteicos = [
     { label: 'DDGS CEBADA (24.9%)', value: 24.9 },
@@ -197,6 +202,18 @@ export default function CalcularDosis() {
     enviovariable(remplazanumero);
   }
 
+  useEffect(() => {
+  calcularPartes();
+  }, [valDeseado, proteico, nutreico]);
+
+  useEffect(() => {
+  ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+
+  return () => {
+    ScreenOrientation.unlockAsync();
+  };
+}, []);
+
   const verificarLibra = (unidad,valor) => {
     return unidad === 'lb' ? valor * 0.453592 : valor;
   }
@@ -209,28 +226,48 @@ export default function CalcularDosis() {
     cambio((anterior) => (anterior === tipo[0] ? tipo[1]:tipo[0]))
   }
 
+  const calcularPartes = () => {
+    if (valDeseado === '') {
+      setParteProteico('');
+      setParteNutreico('');
+      return;
+    }
+
+    const proteicoValor = proteico;
+    const nutreicoValor = nutreico;
+    const valDeseadoValor = valDeseado;
+
+    setParteProteico(Math.abs(nutreicoValor - valDeseadoValor));
+    setParteNutreico(Math.abs(proteicoValor - valDeseadoValor));
+
+    const sumaPartes = parteProteico + parteNutreico;
+    setProporcionProteico(((parteProteico / sumaPartes) * 100).toFixed(2));
+    setProporcionNutreico(((parteNutreico / sumaPartes) * 100).toFixed(2));
+  }
+
   return (
-    <View style={styles.container}>
-      <View style={styles.container1}>
+    <ScrollView horizontal={true} style={styles.container}
+    contentContainerStyle={styles.inside_container}> 
+          <View style={styles.container1}>
         <View style={styles.fila1}>
           <View style={[styles.container2, {justifyContent: 'center'}]}>
-            <Text style={{ textAlign: 'center' }}>Ingrediente</Text>
+            <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}>Ingrediente</Text>
           </View>
 
           <View style={styles.container2}>
-            <Text style={{ textAlign: 'center' }}>Proteina Bruta</Text>
+            <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}>Proteina Bruta</Text>
           </View>
 
           <View style={styles.container2}>
-            <Text style={{ textAlign: 'center' }}>Concentracion deseada</Text>
+            <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}>Concentracion deseada</Text>
           </View>
 
           <View style={styles.container2}>
-            <Text style={{ textAlign: 'center' }}>Partes</Text>
+            <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}>Partes</Text>
           </View>
 
           <View style={styles.container2}>
-            <Text style={{ textAlign: 'center' }}>Proporcion por Fuentes</Text>
+            <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}>Proporcion por Fuentes</Text>
           </View>
 
           <View style={styles.lineaseparadora} />
@@ -287,14 +324,14 @@ export default function CalcularDosis() {
               </View>
 
               <View style={styles.container3}>
-                <Text style={{ textAlign: 'center' }}> {proteico} </Text>
-                <Text style={{ textAlign: 'center' }}>{nutreico}</Text>
+                <Text style={{ textAlign: 'center' }}> {parteProteico} </Text>
+                <Text style={{ textAlign: 'center' }}>{parteNutreico}</Text>
               </View>              
           </View>
 
           <View style={styles.container2}>
-              <Text style={{ textAlign: 'center' }}> {proteico} </Text>
-              <Text style={{ textAlign: 'center' }}> {nutreico}</Text>
+              <Text style={{ textAlign: 'center' }}> {proporcionProteico}% </Text>
+              <Text style={{ textAlign: 'center' }}> {proporcionNutreico}%</Text>
           </View>
 
           
@@ -302,7 +339,7 @@ export default function CalcularDosis() {
       </View>
 
       <StatusBar style="light" />
-    </View>
+    </ScrollView>
   );
 }
 
@@ -311,11 +348,15 @@ const CreateStyles = (width) => {
   
   return StyleSheet.create({
     container: {
-        flex:1,
-        backgroundColor: '#fff',
-        alignContent: "space-between",
-        alignItems: 'center',
-        justifyContent:'center',
+      flex:1,
+      backgroundColor: '#fff',
+    },
+
+    inside_container: {
+      flexGrow: 1,
+      alignContent: "space-between",
+      alignItems: 'center',
+      justifyContent:'center',
     },
 
     container1: {
@@ -326,8 +367,10 @@ const CreateStyles = (width) => {
       borderColor:'#ccc',   
       margin:10,
       paddingBottom: 10,
+      minWidth: 980,
+      minHeight: 400,
       width: '95%',
-      height:'80%',
+      height:'50%',
     },
 
     fila1: {
@@ -335,21 +378,19 @@ const CreateStyles = (width) => {
       flexDirection:'row',
       flexWrap:'wrap',
       justifyContent: "space-around",
-      alignItems: 'start',
+      alignItems: 'center',
     },
       
     fila2: {
       width: '95%',
-      height: "50%",
+      height: "70%",
       justifyContent: "space-between",
-      marginLeft: 37,
+      margin: 20,
       flexDirection:'row',
     },
 
     container2: {
       width: '15%',
-      borderColor: '#ccc',
-      borderWidth:1,
       justifyContent: "space-between",
       margin: 5,
     },
@@ -357,8 +398,6 @@ const CreateStyles = (width) => {
     container3: {
       width: '15%',
       height: '90%',
-      borderColor: '#ccc',
-      borderWidth:1,
       justifyContent: "space-between",
       margin: 10,
       textAlign: 'center',
@@ -381,6 +420,7 @@ const CreateStyles = (width) => {
       height: "100%",
       borderColor: '#ccc',
       borderWidth: 1,
+      borderRadius: 5,
       marginLeft: 10,
       flexDirection: 'row',
       justifyContent: 'space-between',
