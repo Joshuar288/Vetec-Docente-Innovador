@@ -1,7 +1,9 @@
 import { View,Text,Button,StyleSheet,TextInput,TouchableOpacity, Pressable, ScrollView} from "react-native";
 import { StatusBar } from 'expo-status-bar';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useWindowDimensions } from "react-native";
+import * as ScreenOrientation from 'expo-screen-orientation';
+import { useIsFocused } from '@react-navigation/native';
 
 export default function CalcularDosis() {
   const {width} = useWindowDimensions();
@@ -17,6 +19,13 @@ export default function CalcularDosis() {
   const [concentracion, setConcentracion] = useState('');
   const [calculofinal, setCalculofinal] = useState(null);
   const styles = CreateStyles(width,focuss,finish);
+  const isFocused = useIsFocused(); // R
+  // eplace with your actual logic to determine if the screen is focused 
+  useEffect(() => {
+    if (isFocused) {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
+    }
+  }, [isFocused]);
 
   const soloNumeros = (text, enviovariable) =>{
     const remplazanumero = text.replace(/[^0-9]/g, '');
@@ -62,7 +71,8 @@ export default function CalcularDosis() {
                         borderBottomLeftRadius:10,
                         borderTopLeftRadius: 10,
                         outlineColor:'black', 
-                        outlineStyle: 'none'}} 
+                        outlineStyle: 'none',
+                        underlineColorAndroid: 'transparent'}} 
                         placeholder="Escriba Aqui" 
                         placeholderTextColor={'gray'}
                         onFocus={() => setFocus(true)}
@@ -95,7 +105,8 @@ export default function CalcularDosis() {
                         borderBottomLeftRadius:10,
                         borderTopLeftRadius: 10,
                         outlineColor:'black', 
-                        outlineStyle: 'none'}} 
+                        outlineStyle: 'none',
+                        underlineColorAndroid: 'transparent'}} 
                         placeholder="Escriba Aqui" 
                         placeholderTextColor={'gray'}
                         onFocus={() => setFocus(true)}
@@ -110,7 +121,7 @@ export default function CalcularDosis() {
                             width: '15%', 
                             alignItems: 'center', 
                             justifyContent: 'center',}}>
-                              <Text>{unidadgramo}</Text>
+                              <Text numberOfLines={1}>{unidadgramo}</Text>
                           </TouchableOpacity>
                     </View>
                 </View>
@@ -129,7 +140,8 @@ export default function CalcularDosis() {
                           borderBottomLeftRadius:10,
                           borderTopLeftRadius: 10,
                           outlineColor:'black', 
-                          outlineStyle: 'none'}} 
+                          outlineStyle: 'none',
+                          underlineColorAndroid: 'transparent'}} 
                         placeholder="Escriba Aqui" 
                         placeholderTextColor={'gray'}
                         onFocus={() => setFocus(true)}
