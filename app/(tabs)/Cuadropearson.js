@@ -8,7 +8,8 @@ import { useIsFocused } from '@react-navigation/native';
 
 export default function CalcularDosis() {
   const {width} = useWindowDimensions();
-  const styles = CreateStyles(width);
+  const {height} = useWindowDimensions();
+  const styles = CreateStyles(width, height);
   const [proteico, setProteico] = useState(0);
   const [nutreico, setNutreico] = useState(0);
   const [valDeseado, setValDeseado] = useState(0);
@@ -17,6 +18,12 @@ export default function CalcularDosis() {
   const [proporcionProteico, setProporcionProteico] = useState('Sin Calcular ');
   const [proporcionNutreico, setProporcionNutreico] = useState('Sin Calcular ');
   const isFocused = useIsFocused();
+  const [idProteico, setIdProteico] = useState(0);
+  const [idNutreico, setIdNutreico] = useState(0);
+  const [ingredienteProteico, setIngredienteProteico] = useState('Sin ingrediente seleccionado');
+  const [ingredienteNutreico, setIngredienteNutreico] = useState('Sin ingrediente seleccionado');
+  const [librasProteico, setLibrasProteico] = useState('Sin Calcular');
+  const [librasNutreico, setLibrasNutreico] = useState('Sin Calcular');
 
 const ingredientesProteicos = [
   { id: 0, label: 'DDGS CEBADA (24.9%)', value: 24.9 },
@@ -201,8 +208,8 @@ const ingredientesNutreicos = [
 
   const soloNumeros = (text, enviovariable) =>{
     const remplazanumero = text.replace(/[^0-9]/g, '');
-    enviovariable(remplazanumero);
-  }
+      enviovariable(remplazanumero);
+    }
 
   useEffect(() => {
   calcularPartes();
@@ -227,8 +234,10 @@ const ingredientesNutreicos = [
   }
 
   const seleccionarIngredienteNutreico = (value) => {
+    const idNum = Number(value);
+    setIdNutreico(idNum);
     const ingredienteSeleccionado = ingredientesNutreicos.find(
-      item => item.id === value
+      item => item.id === idNum
     );
 
     if (ingredienteSeleccionado) {
@@ -237,8 +246,10 @@ const ingredientesNutreicos = [
   };
 
   const seleccionarIngredienteProteico = (value) => {
+    const idNum = Number(value);
+    setIdProteico(idNum);
     const ingredienteSeleccionado = ingredientesProteicos.find(
-      item => item.id === value
+      item => item.id === idNum
     );
 
     if (ingredienteSeleccionado) {
@@ -276,110 +287,162 @@ const ingredientesNutreicos = [
 
     setProporcionProteico(((parteProteicoValor / sumaPartes) * 100).toFixed(2));
     setProporcionNutreico(((parteNutreicoValor / sumaPartes) * 100).toFixed(2));
+
+    setIngredienteProteico(ingredientesProteicos.find(item => item.id === idProteico)?.label || '');
+    setIngredienteNutreico(ingredientesNutreicos.find(item => item.id === idNutreico)?.label || '');
+    setLibrasProteico(((proporcionProteico * proteico) / 100).toFixed(2));
+    setLibrasNutreico(((proporcionNutreico * nutreico) / 100).toFixed(2));
   }
 
   return (
-    <ScrollView style={{flex: 1}} contentContainerStyle={{flexGrow: 1}}>
-      <ScrollView horizontal={true} style={styles.container}
-      contentContainerStyle={styles.inside_container}> 
+    <ScrollView style={styles.container}
+    contentContainerStyle={styles.inside_container}>
         <View style={styles.container1}>
-        <View style={styles.fila1}>
-          <View style={[styles.container2, {justifyContent: 'center'}]}>
-            <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}>Ingrediente</Text>
+          <View style={styles.fila1}>
+            <View style={[styles.container2, {justifyContent: 'center'}]}>
+              <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}>Ingrediente</Text>
+            </View>
+
+            <View style={styles.container2}>
+              <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}>Proteina Bruta</Text>
+            </View>
+
+            <View style={styles.container2}>
+              <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}>Concentracion deseada</Text>
+            </View>
+
+            <View style={styles.container2}>
+              <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}>Partes</Text>
+            </View>
+
+            <View style={styles.container2}>
+              <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}>Proporcion por Fuentes</Text>
+            </View>
+
+            <View style={styles.lineaseparadora} />
           </View>
 
-          <View style={styles.container2}>
-            <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}>Proteina Bruta</Text>
-          </View>
 
-          <View style={styles.container2}>
-            <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}>Concentracion deseada</Text>
-          </View>
 
-          <View style={styles.container2}>
-            <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}>Partes</Text>
-          </View>
+          <View style={styles.fila2}>
+            <View style={styles.container2}>
+              <Picker
+                style={styles.selectPicker}
+                selectedValue={idProteico}
+                onValueChange={(itemValue) => seleccionarIngredienteProteico(itemValue)}
+              >
+                {ingredientesProteicos.map((item) => (
+                  <Picker.Item
+                    key={item.id}
+                    label={item.label}
+                    value={item.id}
+                  />
+                ))}
+              </Picker>
 
-          <View style={styles.container2}>
-            <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}>Proporcion por Fuentes</Text>
-          </View>
+              <Picker
+                style={styles.selectPicker}
+                selectedValue={idNutreico}
+                onValueChange={(itemValue) => seleccionarIngredienteNutreico(itemValue)}
+              >
+                {ingredientesNutreicos.map((item) => (
+                  <Picker.Item
+                    key={item.id}
+                    label={item.label}
+                    value={item.id}
+                  />
+                ))}
+              </Picker>
+            </View>
 
-          <View style={styles.lineaseparadora} />
+            <View style={styles.squarePearson}>
+                <View style={styles.container3}>
+                  <Text style={{ textAlign: 'center' }}> {proteico} </Text>
+                  <Text style={{ textAlign: 'center' }}> {nutreico} </Text>
+                </View>
+
+                <View style={[styles.container3, {justifyContent: 'center'}]}>
+                  <TextInput keyboardType="numeric" value={valDeseado} onChangeText={(text) => soloNumeros(text,setValDeseado)} 
+                  style={{ 
+                    textAlign: 'center',
+                    borderColor: '#ccc',
+                    borderWidth: 1,
+                    borderRadius: 5,
+                    height: 50,
+                  }} />
+                </View>
+
+                <View style={styles.container3}>
+                  <Text style={{ textAlign: 'center' }}> {parteProteico} </Text>
+                  <Text style={{ textAlign: 'center' }}>{parteNutreico}</Text>
+                </View>              
+            </View>
+
+            <View style={styles.container2}>
+                <Text style={{ textAlign: 'center' }}> {proporcionProteico}</Text>
+                <Text style={{ textAlign: 'center' }}> {proporcionNutreico}</Text>
+            </View>
+
+            
+          </View>
         </View>
 
+        <View style={styles.container1_1}>
+          <View style={styles.filas}>
+            <View style={[styles.container2, {justifyContent: 'center'}]}>
+              <Text style={{ textAlign: 'center', fontSize: 15, fontWeight: 'bold' }}>Ingrediente</Text>
+            </View>
 
+            <View style={styles.container2}>
+              <Text style={{ textAlign: 'center', fontSize: 15, fontWeight: 'bold' }}>Cantidad por 100 LB</Text>
+            </View>
 
-        <View style={styles.fila2}>
-          <View style={styles.container2}>
-            <Picker
-              style={styles.selectPicker}
-              selectedValue={proteico}
-              onValueChange={(itemValue) => seleccionarIngredienteProteico(itemValue)}
-            >
-              {ingredientesProteicos.map((item) => (
-                <Picker.Item
-                  key={item.id}
-                  label={item.label}
-                  value={item.id}
-                />
-              ))}
-            </Picker>
+            <View style={styles.container2}>
+              <Text style={{ textAlign: 'center', fontSize: 15, fontWeight: 'bold' }}>LB a usar</Text>
+            </View>
 
-            <Picker
-              style={styles.selectPicker}
-              selectedValue={nutreico}
-              onValueChange={(itemValue) => seleccionarIngredienteNutreico(itemValue)}
-            >
-              {ingredientesNutreicos.map((item) => (
-                <Picker.Item
-                  key={item.id}
-                  label={item.label}
-                  value={item.id}
-                />
-              ))}
-            </Picker>
+            <View style={styles.lineaseparadora} />
           </View>
-
-          <View style={styles.squarePearson}>
-              <View style={styles.container3}>
-                <Text style={{ textAlign: 'center' }}> {proteico} </Text>
-                <Text style={{ textAlign: 'center' }}> {nutreico} </Text>
-              </View>
-
-              <View style={[styles.container3, {justifyContent: 'center'}]}>
-                <TextInput value={valDeseado} onChangeText={(text) => soloNumeros(text,setValDeseado)} 
-                style={{ 
-                  textAlign: 'center',
-                  borderColor: '#ccc',
-                  borderWidth: 1,
-                  borderRadius: 5,
-                  height: 50,
-                 }} />
-              </View>
-
-              <View style={styles.container3}>
-                <Text style={{ textAlign: 'center' }}> {parteProteico} </Text>
-                <Text style={{ textAlign: 'center' }}>{parteNutreico}</Text>
-              </View>              
-          </View>
-
-          <View style={styles.container2}>
-              <Text style={{ textAlign: 'center' }}> {proporcionProteico}% </Text>
-              <Text style={{ textAlign: 'center' }}> {proporcionNutreico}%</Text>
-          </View>
-
           
-        </View>
-      </View>
+            
 
-      <StatusBar style="light" />
-    </ScrollView>
+          <View style={styles.filas}>
+            <View style={styles.textStatus}>
+              <Text style={{ textAlign: 'center', fontSize: 15, fontWeight: 'regular' }}>{ingredienteProteico}</Text>
+            </View>
+
+            <View style={styles.textStatus}>            
+              <Text style={{ textAlign: 'center', fontSize: 15, fontWeight: 'regular' }}>{proporcionProteico}</Text>
+            </View>
+
+            <View style={styles.textStatus}>
+              <Text style={{ textAlign: 'center', fontSize: 15, fontWeight: 'regular' }}>{librasProteico}</Text>
+            </View>
+          </View>
+
+          <View style={styles.filas}>
+            <View style={styles.textStatus}>
+              <Text style={{ textAlign: 'center', fontSize: 15, fontWeight: 'regular' }}>{ingredienteNutreico}</Text>
+            </View>
+
+            <View style={styles.textStatus}>            
+              <Text style={{ textAlign: 'center', fontSize: 15, fontWeight: 'regular' }}>{proporcionNutreico}</Text>
+            </View>
+
+            <View style={styles.textStatus}>
+              <Text style={{ textAlign: 'center', fontSize: 15, fontWeight: 'regular' }}>{librasNutreico}</Text>
+            </View>
+          </View>
+        </View>
+
+        <StatusBar style="light" />
     </ScrollView>
   );
 }
 
-const CreateStyles = (width) => {
+const CreateStyles = (width, height) => {
   const responsive = (mobile,pc) => width < 800 ? mobile:pc;
+  const responsiveHeight = (mobile,pc) => height < 600 ? mobile:pc;
   
   return StyleSheet.create({
     container: {
@@ -392,19 +455,32 @@ const CreateStyles = (width) => {
       alignContent: "space-between",
       alignItems: 'center',
       justifyContent:'center',
+      flexDirection: 'column',
+      gap: responsiveHeight(10, 50),
     },
 
     container1: {
       gap: 10,
-      alignItems: 'start',
+      alignItems: 'center',
+      borderWidth:1,
+      borderRadius:10,
+      borderColor:'#ccc',   
+      marginTop:30,
+      paddingBottom: 10,
+      width: responsiveHeight('85%', '95%'),
+      height: responsiveHeight(280, 300),
+    },
+
+    container1_1: {
+      gap: 10,
+      alignItems: 'center',
       borderWidth:1,
       borderRadius:10,
       borderColor:'#ccc',   
       margin:10,
       paddingBottom: 10,
-      minHeight: 300,
-      width: '95%',
-      height: "60%",
+      width: '60%',
+      height: 200,
     },
 
     fila1: {
@@ -414,10 +490,18 @@ const CreateStyles = (width) => {
       justifyContent: "space-around",
       alignItems: 'center',
     },
+
+    filas: {
+      width: '100%',
+      flexDirection:'row',
+      flexWrap:'wrap',
+      justifyContent: "space-around",
+      alignItems: 'center',
+    },
       
     fila2: {
       width: '95%',
-      height: "70%",
+      height: responsiveHeight(180, 200),
       justifyContent: "space-between",
       margin: 20,
       flexDirection:'row',
@@ -445,13 +529,13 @@ const CreateStyles = (width) => {
     },
     
     selectPicker: {
-      height: responsive(40, 60),
+      height: responsiveHeight(50, 40),
       width: '100%',
     },
 
     squarePearson: {
       width: "55%",
-      height: "100%",
+      height: responsiveHeight(180, 200),
       borderColor: '#ccc',
       borderWidth: 1,
       borderRadius: 5,
@@ -459,7 +543,13 @@ const CreateStyles = (width) => {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-    }
+    },
+
+    textStatus: {
+      width: '20%',
+      height: 50,
+      margin: 5,
+    },
   });
 }
 
