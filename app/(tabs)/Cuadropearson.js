@@ -1,6 +1,6 @@
-import { View,Text,Button,StyleSheet,TextInput,TouchableOpacity, Pressable, ScrollView} from "react-native";
+import { View,Text,Button,StyleSheet,TextInput,TouchableOpacity, Pressable, ScrollView, Animated, Dimensions, Image} from "react-native";
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef} from "react";
 import { useWindowDimensions } from "react-native";
 import { Picker } from '@react-native-picker/picker';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -24,6 +24,39 @@ export default function CalcularDosis() {
   const [ingredienteNutreico, setIngredienteNutreico] = useState('Sin ingrediente seleccionado');
   const [librasProteico, setLibrasProteico] = useState('Sin Calcular');
   const [librasNutreico, setLibrasNutreico] = useState('Sin Calcular');
+  const moveX = useRef(new Animated.Value(0)).current;
+  const moveY = useRef(new Animated.Value(0)).current;
+
+useEffect(() => {
+  Animated.loop(
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(moveX, {
+          toValue: -30,
+          duration: 4000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(moveY, {
+          toValue: -30,
+          duration: 4000,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.parallel([
+        Animated.timing(moveX, {
+          toValue: 30,
+          duration: 4000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(moveY, {
+          toValue: 30,
+          duration: 4000,
+          useNativeDriver: true,
+        }),
+      ]),
+    ])
+  ).start();
+}, []);
 
 const ingredientesProteicos = [
   { id: 0, label: 'DDGS CEBADA (24.9%)', value: 24.9 },
@@ -297,6 +330,25 @@ const ingredientesNutreicos = [
   return (
     <ScrollView style={styles.container}
     contentContainerStyle={styles.inside_container}>
+      {[...Array(50)].map((_, i) => (
+        <Animated.Image
+          key={i}
+          source={require('../../assets/LogoAulaMix.png')}
+          style={[
+            styles.backgroundLogo,
+            {
+              position: 'absolute',
+              top: Math.random() * height,
+              left: Math.random() * width,
+              transform: [
+                { translateX: moveX },
+                { translateY: moveY },
+              ],
+            },
+          ]}
+          resizeMode="contain"
+        />
+      ))}
         <View style={styles.container1}>
           <View style={styles.fila1}>
             <View style={[styles.container2, {justifyContent: 'center'}]}>
@@ -398,7 +450,7 @@ const ingredientesNutreicos = [
             </View>
 
             <View style={styles.container2}>
-              <Text style={{ textAlign: 'center', fontSize: 15, fontWeight: 'bold' }}>LB a usar</Text>
+              <Text style={{ textAlign: 'center', fontSize: 15, fontWeight: 'bold' }}>Cantidad de proteinas</Text>
             </View>
 
             <View style={styles.lineaseparadora} />
@@ -447,7 +499,8 @@ const CreateStyles = (width, height) => {
   return StyleSheet.create({
     container: {
       flex:1,
-      backgroundColor: '#fff',
+      backgroundColor: '#F4FFF6',
+      zIndex: 1,
     },
 
     inside_container: {
@@ -459,6 +512,15 @@ const CreateStyles = (width, height) => {
       gap: responsiveHeight(10, 50),
     },
 
+    backgroundLogo: {
+      position: 'absolute',
+      width: 80,
+      height: 80,
+      alignSelf: 'center',
+      opacity: 0.50,
+      zIndex: -1, // 🔥 importante
+    },
+
     container1: {
       gap: 10,
       alignItems: 'center',
@@ -467,8 +529,11 @@ const CreateStyles = (width, height) => {
       borderColor:'#ccc',   
       marginTop:30,
       paddingBottom: 10,
-      width: responsiveHeight('85%', '95%'),
-      height: responsiveHeight(280, 300),
+      width: responsiveHeight('85%', '75%'),
+      height: responsiveHeight(280, 350),
+      backgroundColor: '#fff',
+      elevation: 3,
+      boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.4)',
     },
 
     container1_1: {
@@ -481,6 +546,9 @@ const CreateStyles = (width, height) => {
       paddingBottom: 10,
       width: '60%',
       height: 200,
+      backgroundColor: '#fff',
+      elevation: 3,
+      boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.4)',
     },
 
     fila1: {

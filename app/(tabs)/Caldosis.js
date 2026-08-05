@@ -1,12 +1,13 @@
-import { View,Text,Button,StyleSheet,TextInput,TouchableOpacity, Pressable, ScrollView} from "react-native";
+import { View,Text,Button,StyleSheet,TextInput,TouchableOpacity, Pressable, ScrollView, Animated, Dimensions, Image} from "react-native";
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useWindowDimensions } from "react-native";
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useIsFocused } from '@react-navigation/native';
 
 export default function CalcularDosis() {
   const {width} = useWindowDimensions();
+  const {height} = useWindowDimensions();
   const [focuss, setFocus] = useState(false);
   const [finish, setFinish] = useState(false);
   const [unidadpeso, setUnidadPeso] = useState('lb');
@@ -19,8 +20,41 @@ export default function CalcularDosis() {
   const [concentracion, setConcentracion] = useState('');
   const [calculofinal, setCalculofinal] = useState(null);
   const styles = CreateStyles(width,focuss,finish);
-  const isFocused = useIsFocused(); // R
-  // eplace with your actual logic to determine if the screen is focused 
+  const isFocused = useIsFocused();
+  const moveX = useRef(new Animated.Value(0)).current;
+  const moveY = useRef(new Animated.Value(0)).current;
+  
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(moveX, {
+            toValue: -30,
+            duration: 4000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(moveY, {
+            toValue: -30,
+            duration: 4000,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.parallel([
+          Animated.timing(moveX, {
+            toValue: 30,
+            duration: 4000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(moveY, {
+            toValue: 30,
+            duration: 4000,
+            useNativeDriver: true,
+          }),
+        ]),
+      ])
+    ).start();
+  }, []);
+
   useEffect(() => {
     if (isFocused) {
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
@@ -57,6 +91,25 @@ export default function CalcularDosis() {
     return (
         <ScrollView style={styles.container}
         contentContainerStyle={styles.inside_container}>
+        {[...Array(50)].map((_, i) => (
+          <Animated.Image
+            key={i}
+            source={require('../../assets/LogoAulaMix.png')}
+            style={[
+              styles.backgroundLogo,
+              {
+                position: 'absolute',
+                top: Math.random() * height,
+                left: Math.random() * width,
+                transform: [
+                  { translateX: moveX },
+                  { translateY: moveY },
+                ],
+              },
+            ]}
+            resizeMode="contain"
+          />
+        ))}
             <View style={styles.container1}>
                 <View style={styles.conteiner2}>
                     <Text style={styles.label}>
@@ -188,7 +241,8 @@ const CreateStyles = (width,focuss,finish) => {
   return StyleSheet.create({
     container: {
       flex:1,
-      backgroundColor: '#fff',
+      backgroundColor: '#F4FFF6',
+      zIndex: 1,
     },
 
     inside_container: {
@@ -196,6 +250,15 @@ const CreateStyles = (width,focuss,finish) => {
       alignContent: "space-between",
       alignItems: 'center',
       justifyContent:'center',
+    },
+
+    backgroundLogo: {
+      position: 'absolute',
+      width: 80,
+      height: 80,
+      alignSelf: 'center',
+      opacity: 0.50,
+      zIndex: -1, // 🔥 importante
     },
 
     container1: {
@@ -210,7 +273,10 @@ const CreateStyles = (width,focuss,finish) => {
       borderColor:'#ccc',
       margin:10,
       paddingBottom: 10,
-      width: responsive('95%', '90%')
+      width: responsive('95%', '90%'),
+      backgroundColor: '#fff',
+      elevation: 3,
+      boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.4)',
     },
 
     container1_5: {
