@@ -1,6 +1,6 @@
 import { View,Text,Button,StyleSheet,TextInput,TouchableOpacity, Pressable, ScrollView, Animated, Dimensions, Image} from "react-native";
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect, useRef} from "react";
+import { useState, useEffect, useRef, useMemo} from "react";
 import { useWindowDimensions } from "react-native";
 import { Picker } from '@react-native-picker/picker';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -26,6 +26,12 @@ export default function CalcularDosis() {
   const [librasNutreico, setLibrasNutreico] = useState('Sin Calcular');
   const moveX = useRef(new Animated.Value(0)).current;
   const moveY = useRef(new Animated.Value(0)).current;
+  const logoPositions = useMemo(() => {
+    return Array.from({ length: 50 }, () => ({
+      top: Math.random() * height,
+      left: Math.random() * width,
+    }));
+  }, [width, height]);
 
 useEffect(() => {
   Animated.loop(
@@ -327,31 +333,41 @@ const ingredientesNutreicos = [
     setLibrasNutreico(((proporcionNutreico * nutreico) / 100).toFixed(2));
   }
 
-  return (
-    <ScrollView style={styles.container}
-    contentContainerStyle={styles.inside_container}>
-      {[...Array(50)].map((_, i) => (
-        <Animated.Image
-          key={i}
-          source={require('../../assets/LogoAulaMix.png')}
-          style={[
-            styles.backgroundLogo,
-            {
-              position: 'absolute',
-              top: Math.random() * height,
-              left: Math.random() * width,
-              transform: [
-                { translateX: moveX },
-                { translateY: moveY },
-              ],
-            },
-          ]}
-          resizeMode="contain"
-        />
-      ))}
+return (
+    <View style={{ flex: 1 }}>
+      {/* Fondo de pantalla fijo - Fuera del ScrollView */}
+      <View style={styles.backgroundContainer} pointerEvents="none">
+        <View style={styles.background}>
+          {logoPositions.map((pos, i) => (
+            <Animated.Image
+              key={i}
+              source={require('../../assets/LogoAulaMix.png')}
+              style={[
+                styles.backgroundLogo,
+                {
+                  position: 'absolute',
+                  top: pos.top,
+                  left: pos.left,
+                  transform: [
+                    { translateX: moveX },
+                    { translateY: moveY },
+                  ],
+                },
+              ]}
+              resizeMode="contain"
+            />
+          ))}
+        </View>
+      </View>
+
+      {/* Formulario scrolleable sobre el fondo */}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.inside_container}
+      >
         <View style={styles.container1}>
           <View style={styles.fila1}>
-            <View style={[styles.container2, {justifyContent: 'center'}]}>
+            <View style={[styles.container2, { justifyContent: 'center' }]}>
               <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}>Ingrediente</Text>
             </View>
 
@@ -373,8 +389,6 @@ const ingredientesNutreicos = [
 
             <View style={styles.lineaseparadora} />
           </View>
-
-
 
           <View style={styles.fila2}>
             <View style={styles.container2}>
@@ -408,40 +422,42 @@ const ingredientesNutreicos = [
             </View>
 
             <View style={styles.squarePearson}>
-                <View style={styles.container3}>
-                  <Text style={{ textAlign: 'center' }}> {proteico} </Text>
-                  <Text style={{ textAlign: 'center' }}> {nutreico} </Text>
-                </View>
+              <View style={styles.container3}>
+                <Text style={{ textAlign: 'center' }}> {proteico} </Text>
+                <Text style={{ textAlign: 'center' }}> {nutreico} </Text>
+              </View>
 
-                <View style={[styles.container3, {justifyContent: 'center'}]}>
-                  <TextInput keyboardType="numeric" value={valDeseado} onChangeText={(text) => soloNumeros(text,setValDeseado)} 
-                  style={{ 
+              <View style={[styles.container3, { justifyContent: 'center' }]}>
+                <TextInput
+                  keyboardType="numeric"
+                  value={String(valDeseado)}
+                  onChangeText={(text) => soloNumeros(text, setValDeseado)}
+                  style={{
                     textAlign: 'center',
                     borderColor: '#ccc',
                     borderWidth: 1,
                     borderRadius: 5,
                     height: 50,
-                  }} />
-                </View>
+                  }}
+                />
+              </View>
 
-                <View style={styles.container3}>
-                  <Text style={{ textAlign: 'center' }}> {parteProteico} </Text>
-                  <Text style={{ textAlign: 'center' }}>{parteNutreico}</Text>
-                </View>              
+              <View style={styles.container3}>
+                <Text style={{ textAlign: 'center' }}> {parteProteico} </Text>
+                <Text style={{ textAlign: 'center' }}>{parteNutreico}</Text>
+              </View>
             </View>
 
             <View style={styles.container2}>
-                <Text style={{ textAlign: 'center' }}> {proporcionProteico}</Text>
-                <Text style={{ textAlign: 'center' }}> {proporcionNutreico}</Text>
+              <Text style={{ textAlign: 'center' }}> {proporcionProteico}</Text>
+              <Text style={{ textAlign: 'center' }}> {proporcionNutreico}</Text>
             </View>
-
-            
           </View>
         </View>
 
         <View style={styles.container1_1}>
           <View style={styles.filas}>
-            <View style={[styles.container2, {justifyContent: 'center'}]}>
+            <View style={[styles.container2, { justifyContent: 'center' }]}>
               <Text style={{ textAlign: 'center', fontSize: 15, fontWeight: 'bold' }}>Ingrediente</Text>
             </View>
 
@@ -455,40 +471,39 @@ const ingredientesNutreicos = [
 
             <View style={styles.lineaseparadora} />
           </View>
-          
-            
 
           <View style={styles.filas}>
             <View style={styles.textStatus}>
-              <Text style={{ textAlign: 'center', fontSize: 15, fontWeight: 'regular' }}>{ingredienteProteico}</Text>
-            </View>
-
-            <View style={styles.textStatus}>            
-              <Text style={{ textAlign: 'center', fontSize: 15, fontWeight: 'regular' }}>{proporcionProteico}</Text>
+              <Text style={{ textAlign: 'center', fontSize: 15 }}>{ingredienteProteico}</Text>
             </View>
 
             <View style={styles.textStatus}>
-              <Text style={{ textAlign: 'center', fontSize: 15, fontWeight: 'regular' }}>{librasProteico}</Text>
+              <Text style={{ textAlign: 'center', fontSize: 15 }}>{proporcionProteico}</Text>
+            </View>
+
+            <View style={styles.textStatus}>
+              <Text style={{ textAlign: 'center', fontSize: 15 }}>{librasProteico}</Text>
             </View>
           </View>
 
           <View style={styles.filas}>
             <View style={styles.textStatus}>
-              <Text style={{ textAlign: 'center', fontSize: 15, fontWeight: 'regular' }}>{ingredienteNutreico}</Text>
-            </View>
-
-            <View style={styles.textStatus}>            
-              <Text style={{ textAlign: 'center', fontSize: 15, fontWeight: 'regular' }}>{proporcionNutreico}</Text>
+              <Text style={{ textAlign: 'center', fontSize: 15 }}>{ingredienteNutreico}</Text>
             </View>
 
             <View style={styles.textStatus}>
-              <Text style={{ textAlign: 'center', fontSize: 15, fontWeight: 'regular' }}>{librasNutreico}</Text>
+              <Text style={{ textAlign: 'center', fontSize: 15 }}>{proporcionNutreico}</Text>
+            </View>
+
+            <View style={styles.textStatus}>
+              <Text style={{ textAlign: 'center', fontSize: 15 }}>{librasNutreico}</Text>
             </View>
           </View>
         </View>
 
         <StatusBar style="light" />
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -499,7 +514,7 @@ const CreateStyles = (width, height) => {
   return StyleSheet.create({
     container: {
       flex:1,
-      backgroundColor: '#F4FFF6',
+      backgroundColor: 'transparent',
       zIndex: 1,
     },
 
@@ -518,7 +533,19 @@ const CreateStyles = (width, height) => {
       height: 80,
       alignSelf: 'center',
       opacity: 0.50,
-      zIndex: -1, // 🔥 importante
+    },
+
+      // Contenedor principal del fondo fijo en la pantalla
+    backgroundContainer: {
+      ...StyleSheet.absoluteFillObject, // equivale a: top: 0, left: 0, right: 0, bottom: 0, position: 'absolute'
+      zIndex: -1, // Asegura que quede detrás del contenido interactivo
+      backgroundColor: '#F4FFF6', // Fondo transparente para que se vea el contenido detrás
+    },
+
+    // Recorta cualquier imagen que intente salir del área de la pantalla
+    background: {
+      flex: 1,
+      overflow: 'hidden', 
     },
 
     container1: {

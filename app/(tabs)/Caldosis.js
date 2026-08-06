@@ -1,6 +1,6 @@
 import { View,Text,Button,StyleSheet,TextInput,TouchableOpacity, Pressable, ScrollView, Animated, Dimensions, Image} from "react-native";
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo} from "react";
 import { useWindowDimensions } from "react-native";
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useIsFocused } from '@react-navigation/native';
@@ -23,6 +23,12 @@ export default function CalcularDosis() {
   const isFocused = useIsFocused();
   const moveX = useRef(new Animated.Value(0)).current;
   const moveY = useRef(new Animated.Value(0)).current;
+  const logoPositions = useMemo(() => {
+    return Array.from({ length: 50 }, () => ({
+      top: Math.random() * height,
+      left: Math.random() * width,
+    }));
+  }, [width, height]);
   
   useEffect(() => {
     Animated.loop(
@@ -89,27 +95,32 @@ export default function CalcularDosis() {
   }
   
     return (
+      <View style={{flex:1}}>
+          <View style={styles.backgroundContainer} pointerEvents="none">
+            <View style={styles.background}>
+              {logoPositions.map((pos, i) => (
+                <Animated.Image
+                  key={i}
+                  source={require('../../assets/LogoAulaMix.png')}
+                  style={[
+                    styles.backgroundLogo,
+                    {
+                      position: 'absolute',
+                      top: pos.top,
+                      left: pos.left,
+                      transform: [
+                        { translateX: moveX },
+                        { translateY: moveY },
+                      ],
+                    },
+                  ]}
+                  resizeMode="contain"
+                />
+              ))}
+            </View>
+          </View>
         <ScrollView style={styles.container}
         contentContainerStyle={styles.inside_container}>
-        {[...Array(50)].map((_, i) => (
-          <Animated.Image
-            key={i}
-            source={require('../../assets/LogoAulaMix.png')}
-            style={[
-              styles.backgroundLogo,
-              {
-                position: 'absolute',
-                top: Math.random() * height,
-                left: Math.random() * width,
-                transform: [
-                  { translateX: moveX },
-                  { translateY: moveY },
-                ],
-              },
-            ]}
-            resizeMode="contain"
-          />
-        ))}
             <View style={styles.container1}>
                 <View style={styles.conteiner2}>
                     <Text style={styles.label}>
@@ -228,7 +239,7 @@ export default function CalcularDosis() {
 
             <StatusBar style="light" />
         </ScrollView>
-        
+      </View>
     )
 
 
@@ -241,7 +252,7 @@ const CreateStyles = (width,focuss,finish) => {
   return StyleSheet.create({
     container: {
       flex:1,
-      backgroundColor: '#F4FFF6',
+      backgroundColor: 'transparent',
       zIndex: 1,
     },
 
@@ -258,7 +269,18 @@ const CreateStyles = (width,focuss,finish) => {
       height: 80,
       alignSelf: 'center',
       opacity: 0.50,
-      zIndex: -1, // 🔥 importante
+      zIndex: -1,
+    },
+      // Contenedor principal del fondo fijo en la pantalla
+    backgroundContainer: {
+      ...StyleSheet.absoluteFillObject, // equivale a: top: 0, left: 0, right: 0, bottom: 0, position: 'absolute'
+      zIndex: -1, // Asegura que quede detrás del contenido interactivo
+      backgroundColor: '#F4FFF6', // Fondo transparente para que se vea el contenido detrás
+    },
+    // Recorta cualquier imagen que intente salir del área de la pantalla
+    background: {
+      flex: 1,
+      overflow: 'hidden', 
     },
 
     container1: {
