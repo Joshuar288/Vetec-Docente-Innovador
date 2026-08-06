@@ -298,40 +298,52 @@ const ingredientesNutreicos = [
 
 
   const calcularPartes = () => {
-    if (valDeseado === '') {
-      setParteProteico('');
-      setParteNutreico('');
-      setProporcionProteico('Sin Calcular ');
-      setProporcionNutreico('Sin Calcular ');
-      return;
-    }
-
     const proteicoValor = Number(proteico) || 0;
     const nutreicoValor = Number(nutreico) || 0;
     const valDeseadoValor = Number(valDeseado) || 0;
 
-    const parteProteicoValor = Math.abs(nutreicoValor - valDeseadoValor);
-    const parteNutreicoValor = Math.abs(proteicoValor - valDeseadoValor);
-
-    setParteProteico(parteProteicoValor.toFixed(2));
-    setParteNutreico(parteNutreicoValor.toFixed(2));
-
-    const sumaPartes = parteProteicoValor + parteNutreicoValor;
-
-    if (sumaPartes === 0) {
+    if (!valDeseado || valDeseadoValor === 0) {
+      setParteProteico('');
+      setParteNutreico('');
       setProporcionProteico('0.00');
       setProporcionNutreico('0.00');
+      setLibrasProteico('0.00');
+      setLibrasNutreico('0.00');
       return;
     }
 
-    setProporcionProteico(((parteProteicoValor / sumaPartes) * 100).toFixed(2));
-    setProporcionNutreico(((parteNutreicoValor / sumaPartes) * 100).toFixed(2));
+    const parteProteicoValor = Math.abs(nutreicoValor - valDeseadoValor);
+    const parteNutreicoValor = Math.abs(proteicoValor - valDeseadoValor);
+    const sumaPartes = parteProteicoValor + parteNutreicoValor;
+
+    if (sumaPartes === 0) {
+      setParteProteico('0.00');
+      setParteNutreico('0.00');
+      setProporcionProteico('0.00');
+      setProporcionNutreico('0.00');
+      setLibrasProteico('0.00');
+      setLibrasNutreico('0.00');
+      return;
+    }
+
+    const propProtNum = (parteProteicoValor / sumaPartes) * 100;
+    const propNutrNum = (parteNutreicoValor / sumaPartes) * 100;
+
+    const protAporteNum = (propProtNum * proteicoValor) / 100;
+    const nutrAporteNum = (propNutrNum * nutreicoValor) / 100;
+
+    setParteProteico(parteProteicoValor.toFixed(2));
+    setParteNutreico(parteNutreicoValor.toFixed(2));
+    
+    setProporcionProteico(propProtNum.toFixed(2));
+    setProporcionNutreico(propNutrNum.toFixed(2));
+
+    setLibrasProteico(protAporteNum.toFixed(2));
+    setLibrasNutreico(nutrAporteNum.toFixed(2));
 
     setIngredienteProteico(ingredientesProteicos.find(item => item.id === idProteico)?.label || '');
     setIngredienteNutreico(ingredientesNutreicos.find(item => item.id === idNutreico)?.label || '');
-    setLibrasProteico(((proporcionProteico * proteico) / 100).toFixed(2));
-    setLibrasNutreico(((proporcionNutreico * nutreico) / 100).toFixed(2));
-  }
+  };
 
 return (
     <View style={{ flex: 1 }}>
@@ -499,6 +511,20 @@ return (
               <Text style={{ textAlign: 'center', fontSize: 15 }}>{librasNutreico}</Text>
             </View>
           </View>
+
+          <View style={styles.filas}>
+            <View style={styles.textStatus}>
+              <Text style={{ textAlign: 'center', fontSize: 15 }}>Total</Text>
+            </View>
+
+            <View style={styles.textStatus}>
+              <Text style={{ textAlign: 'center', fontSize: 15 }}>{(parseFloat(proporcionNutreico) + parseFloat(proporcionProteico)).toFixed(2)}</Text>
+            </View>
+
+            <View style={styles.textStatus}>
+              <Text style={{ textAlign: 'center', fontSize: 15 }}>{(parseFloat(librasNutreico) + parseFloat(librasProteico)).toFixed(2)}</Text>
+            </View>
+          </View>
         </View>
 
         <StatusBar style="light" />
@@ -557,7 +583,7 @@ const CreateStyles = (width, height) => {
       marginTop:30,
       paddingBottom: 10,
       width: responsiveHeight('85%', '75%'),
-      height: responsiveHeight(280, 350),
+      height: responsiveHeight(300, 340),
       backgroundColor: '#fff',
       elevation: 3,
       boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.4)',
@@ -572,7 +598,7 @@ const CreateStyles = (width, height) => {
       margin:10,
       paddingBottom: 10,
       width: '60%',
-      height: 200,
+      height: 300,
       backgroundColor: '#fff',
       elevation: 3,
       boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.4)',

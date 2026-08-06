@@ -3,7 +3,7 @@
     "name": "Vetec2",
     "slug": "Vetec2",
     "version": "1.0.0",
-    "scheme":"mi-vetec",
+    "scheme": "mi-vetec",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -21,7 +21,8 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "package": "com.anonymous.Vetec2"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -29,6 +30,12 @@
     },
     "plugins": [
       "expo-router"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9ca8d974-1ee1-45b6-9e84-ef71b479bf3d"
+      }
+    }
   }
 }
