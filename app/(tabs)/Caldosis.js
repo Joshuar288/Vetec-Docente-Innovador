@@ -1,418 +1,172 @@
-import { View,Text,Button,StyleSheet,TextInput,TouchableOpacity, Pressable, ScrollView, Animated, Dimensions, Image} from "react-native";
+import { useEffect, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect, useRef, useMemo} from "react";
-import { useWindowDimensions } from "react-native";
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useIsFocused } from '@react-navigation/native';
+import AnimatedLogoBackground from '../../components/AnimatedLogoBackground';
+
+function CampoDosis({ numero, titulo, ayuda, value, onChangeText, unidad, onCambiarUnidad, focused, onFocus, onBlur }) {
+  return (
+    <View style={styles.fieldGroup}>
+      <View style={styles.fieldHeading}>
+        <View style={styles.stepBadge}><Text style={styles.stepText}>{numero}</Text></View>
+        <View style={styles.fieldCopy}>
+          <Text style={styles.fieldLabel}>{titulo}</Text>
+          <Text style={styles.fieldHelp}>{ayuda}</Text>
+        </View>
+      </View>
+      <View style={[styles.inputShell, focused && styles.inputShellFocused]}>
+        <TextInput value={value} onChangeText={onChangeText} style={styles.input} keyboardType="numeric"
+          placeholder="0" placeholderTextColor="#9CA3AF" onFocus={onFocus} onBlur={onBlur} selectTextOnFocus />
+        <Pressable onPress={onCambiarUnidad} style={({ pressed }) => [styles.unitButton, pressed && styles.unitButtonPressed]}
+          accessibilityRole="button" accessibilityLabel={`Cambiar unidad. Unidad actual: ${unidad}`}>
+          <Text style={styles.unitText} numberOfLines={1}>{unidad}</Text>
+          <Text style={styles.unitArrows}>⇄</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
 
 export default function CalcularDosis() {
-  const {width} = useWindowDimensions();
-  const {height} = useWindowDimensions();
-  const [focuss, setFocus] = useState(false);
-  const [finish, setFinish] = useState(false);
-  const [unidadpeso, setUnidadPeso] = useState('lb');
-  const [unidadpeso2, setUnidadPeso2] = useState('lb');
-  const [unidadgramo, setUnidadGramo] = useState('mg/kg');
-  const [unidadgramo2, setUnidadGramo2] = useState('mg/kg');
-  const [peso, setPeso] = useState('');
-  const [peso2, setPeso2] = useState('');
-  const [dosispeso, setDosispeso] = useState('');
-  const [concentracion, setConcentracion] = useState('');
-  const [calculofinal, setCalculofinal] = useState(null);
-  const styles = CreateStyles(width,focuss,finish);
+  const { width } = useWindowDimensions();
   const isFocused = useIsFocused();
-  const moveX = useRef(new Animated.Value(0)).current;
-  const moveY = useRef(new Animated.Value(0)).current;
-  const logoPositions = useMemo(() => {
-    return Array.from({ length: 50 }, () => ({
-      top: Math.random() * height,
-      left: Math.random() * width,
-    }));
-  }, [width, height]);
-  
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.parallel([
-          Animated.timing(moveX, {
-            toValue: -30,
-            duration: 4000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(moveY, {
-            toValue: -30,
-            duration: 4000,
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.parallel([
-          Animated.timing(moveX, {
-            toValue: 30,
-            duration: 4000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(moveY, {
-            toValue: 30,
-            duration: 4000,
-            useNativeDriver: true,
-          }),
-        ]),
-      ])
-    ).start();
-  }, []);
+  const [campoActivo, setCampoActivo] = useState(null);
+  const [unidadPeso, setUnidadPeso] = useState('lb');
+  const [unidadDosis, setUnidadDosis] = useState('mg/kg');
+  const [unidadConcentracion, setUnidadConcentracion] = useState('mg/kg');
+  const [peso, setPeso] = useState('');
+  const [dosisPeso, setDosisPeso] = useState('');
+  const [concentracion, setConcentracion] = useState('');
+  const [calculoFinal, setCalculoFinal] = useState(null);
+  const compact = width < 390;
 
   useEffect(() => {
-    if (isFocused) {
-      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
-    }
+    if (isFocused) ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
   }, [isFocused]);
 
-  const soloNumeros = (text, enviovariable) =>{
-    const remplazanumero = text.replace(/[^0-9]/g, '');
-    enviovariable(remplazanumero);
-  }
+  const soloNumeros = (texto, setter) => {
+    const normalizado = texto.replace(',', '.').replace(/[^0-9.]/g, '');
+    const partes = normalizado.split('.');
+    setter(partes.length > 1 ? `${partes.shift()}.${partes.join('')}` : normalizado);
+    setCalculoFinal(null);
+  };
 
-  const verificarLibra = (unidad,valor) => {
-    return unidad === 'lb' ? valor * 0.453592 : valor;
-  }
+  const cambiarUnidad = (setter, unidades) => {
+    setter((actual) => actual === unidades[0] ? unidades[1] : unidades[0]);
+    setCalculoFinal(null);
+  };
 
-  const verificarVolumen = (unidad,valor) => {
-    return unidad === 'mg/lb' ? valor * 2.20462 : valor;
-  }
+  const verificarLibra = (unidad, valor) => unidad === 'lb' ? Number(valor) * 0.453592 : Number(valor);
+  const verificarVolumen = (unidad, valor) => unidad === 'mg/lb' ? Number(valor) * 2.20462 : Number(valor);
+  const formularioCompleto = Number(peso) > 0 && Number(dosisPeso) > 0 && Number(concentracion) > 0;
 
-  const calculodosis = () => {
-    /**Convertimos todos los valores puestos en lb o mg/lb en Kg y mg/kg */
-    const pesof = verificarLibra(unidadpeso,peso);
-    const dosispesof = verificarVolumen(unidadgramo,dosispeso);
-    const concentracionf = verificarVolumen(unidadgramo2,concentracion);
+  const calcularDosis = () => {
+    if (!formularioCompleto) return;
+    const pesoFinal = verificarLibra(unidadPeso, peso);
+    const dosisFinal = verificarVolumen(unidadDosis, dosisPeso);
+    const concentracionFinal = verificarVolumen(unidadConcentracion, concentracion);
+    setCalculoFinal(((pesoFinal * dosisFinal) / concentracionFinal).toFixed(2));
+  };
 
-    const dosispesofinal = pesof * dosispesof;
-    setCalculofinal((dosispesofinal/concentracionf).toFixed(2));
-    setFinish(true);
-  }
-  const cambiarUnidad = (cambio,tipo) =>{
-    cambio((anterior) => (anterior === tipo[0] ? tipo[1]:tipo[0]))
-  }
-  
-    return (
-      <View style={{flex:1}}>
-          <View style={styles.backgroundContainer} pointerEvents="none">
-            <View style={styles.background}>
-              {logoPositions.map((pos, i) => (
-                <Animated.Image
-                  key={i}
-                  source={require('../../assets/LogoAulaMix.png')}
-                  style={[
-                    styles.backgroundLogo,
-                    {
-                      position: 'absolute',
-                      top: pos.top,
-                      left: pos.left,
-                      transform: [
-                        { translateX: moveX },
-                        { translateY: moveY },
-                      ],
-                    },
-                  ]}
-                  resizeMode="contain"
-                />
-              ))}
-            </View>
+  return (
+    <View style={styles.screen}>
+      <AnimatedLogoBackground count={26} />
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <View style={styles.hero}>
+          <View style={styles.heroIcon}><Text style={styles.heroIconText}>Rx</Text></View>
+          <View style={styles.heroCopy}>
+            <Text style={[styles.title, compact && styles.titleCompact]}>Calculadora de dosis</Text>
+            <Text style={styles.subtitle}>Obtén una dosificación precisa según el peso y la concentración del producto.</Text>
           </View>
-        <ScrollView style={styles.container}
-        contentContainerStyle={styles.inside_container}>
-            <View style={styles.container1}>
-                <View style={styles.conteiner2}>
-                    <Text style={styles.label}>
-                        Indique el peso del animal
-                    </Text>
-                    
-                    <View style={styles.inputtext2}>
-                        <TextInput value={peso} onChangeText={(text) => soloNumeros(text, setPeso)} 
-                        style= {{
-                        flex: 1, 
-                        padding: 8,
-                        borderBottomLeftRadius:10,
-                        borderTopLeftRadius: 10,
-                        outlineColor:'black', 
-                        outlineStyle: 'none',
-                        underlineColorAndroid: 'transparent'}} 
-                        placeholder="Escriba Aqui" 
-                        placeholderTextColor={'gray'}
-                        onFocus={() => setFocus(true)}
-                        onBlur={() => setFocus(false)}/>
-                          <TouchableOpacity 
-                            onPress={() => cambiarUnidad(setUnidadPeso, ['lb', 'kg'])}
-                            style={{ 
-                            backgroundColor: '#8CD6FF', 
-                            padding: 8, 
-                            borderBottomRightRadius: 10,
-                            borderTopRightRadius: 10, 
-                            width: '15%', 
-                            alignItems: 'center', 
-                            justifyContent: 'center',}}>
-                              <Text>{unidadpeso}</Text>
-                          </TouchableOpacity>
-                    </View>
-                </View>
+        </View>
 
-                <View style={styles.conteiner2}>
-                    <Text style={styles.label}>
-                        Indique la Cantididad de Dosis Recomendada
-                    </Text>
-                    
-                    <View style={styles.inputtext2}>
-                        <TextInput value={dosispeso} onChangeText={(text) => soloNumeros(text, setDosispeso)} 
-                        style= {{
-                        flex: 1, 
-                        padding: 8,
-                        borderBottomLeftRadius:10,
-                        borderTopLeftRadius: 10,
-                        outlineColor:'black', 
-                        outlineStyle: 'none',
-                        underlineColorAndroid: 'transparent'}} 
-                        placeholder="Escriba Aqui" 
-                        placeholderTextColor={'gray'}
-                        onFocus={() => setFocus(true)}
-                        onBlur={() => setFocus(false)}/>
-                          <TouchableOpacity 
-                            onPress={() => cambiarUnidad(setUnidadGramo, ['mg/kg', 'mg/lb'])}
-                            style={{ 
-                            backgroundColor: '#8CD6FF', 
-                            padding: 8, 
-                            borderBottomRightRadius: 10,
-                            borderTopRightRadius: 10, 
-                            width: '15%', 
-                            alignItems: 'center', 
-                            justifyContent: 'center',}}>
-                              <Text numberOfLines={1}>{unidadgramo}</Text>
-                          </TouchableOpacity>
-                    </View>
-                </View>
+        <View style={styles.formCard}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>Datos del tratamiento</Text>
+            <Text style={styles.required}>Todos los campos son obligatorios</Text>
+          </View>
+          <CampoDosis numero="1" titulo="Peso del animal" ayuda="Peso actual del paciente" value={peso}
+            onChangeText={(text) => soloNumeros(text, setPeso)} unidad={unidadPeso}
+            onCambiarUnidad={() => cambiarUnidad(setUnidadPeso, ['lb', 'kg'])} focused={campoActivo === 'peso'}
+            onFocus={() => setCampoActivo('peso')} onBlur={() => setCampoActivo(null)} />
+          <View style={styles.separator} />
+          <CampoDosis numero="2" titulo="Dosis recomendada" ayuda="Cantidad indicada por unidad de peso" value={dosisPeso}
+            onChangeText={(text) => soloNumeros(text, setDosisPeso)} unidad={unidadDosis}
+            onCambiarUnidad={() => cambiarUnidad(setUnidadDosis, ['mg/kg', 'mg/lb'])} focused={campoActivo === 'dosis'}
+            onFocus={() => setCampoActivo('dosis')} onBlur={() => setCampoActivo(null)} />
+          <View style={styles.separator} />
+          <CampoDosis numero="3" titulo="Concentración del producto" ayuda="Concentración indicada en la etiqueta" value={concentracion}
+            onChangeText={(text) => soloNumeros(text, setConcentracion)} unidad={unidadConcentracion}
+            onCambiarUnidad={() => cambiarUnidad(setUnidadConcentracion, ['mg/kg', 'mg/lb'])} focused={campoActivo === 'concentracion'}
+            onFocus={() => setCampoActivo('concentracion')} onBlur={() => setCampoActivo(null)} />
+          <Pressable onPress={calcularDosis} disabled={!formularioCompleto}
+            style={({ pressed }) => [styles.calculateButton, !formularioCompleto && styles.calculateButtonDisabled, pressed && formularioCompleto && styles.calculateButtonPressed]}>
+            <Text style={styles.calculateButtonText}>Calcular dosis</Text><Text style={styles.calculateArrow}>→</Text>
+          </Pressable>
+        </View>
 
-                <View style={styles.conteiner2}>
-                    <Text style={styles.label}>
-                        Indique la Concentracion recomendada
-                    </Text>
-                    
-                    <View style={styles.inputtext2}>
-                        <TextInput value={concentracion}
-                        onChangeText={(text) => soloNumeros(text, setConcentracion)}
-                        style= {{
-                          flex: 1, 
-                          padding: 8,
-                          borderBottomLeftRadius:10,
-                          borderTopLeftRadius: 10,
-                          outlineColor:'black', 
-                          outlineStyle: 'none',
-                          underlineColorAndroid: 'transparent'}} 
-                        placeholder="Escriba Aqui" 
-                        placeholderTextColor={'gray'}
-                        onFocus={() => setFocus(true)}
-                        onBlur={() => setFocus(false)}/>
-                          <TouchableOpacity 
-                            onPress={() => cambiarUnidad(setUnidadGramo2, ['mg/kg', 'mg/lb'])}
-                            style={{ backgroundColor: '#8CD6FF', padding: 8, borderRadius: 10, width: '15%', 'alignItems': 'center', 'justifyContent': 'center'  }}>
-                              <Text numberOfLines={1}>{unidadgramo2}</Text>
-                          </TouchableOpacity>
-                    </View>
-                </View>
-
-                <Pressable onPress={calculodosis} style={({pressed}) => [
-                  styles.buttonfinish,
-                  pressed && styles.buttonfinishPressed
-                ]}>
-                  <Text>
-                    Calular
-                  </Text>
-                </Pressable>
+        {calculoFinal !== null && (
+          <View style={styles.resultCard} accessibilityRole="summary">
+            <View style={styles.resultCheck}><Text style={styles.resultCheckText}>✓</Text></View>
+            <Text style={styles.resultEyebrow}>DOSIS CALCULADA</Text>
+            <View style={styles.resultLine}>
+              <Text style={[styles.resultNumber, compact && styles.resultNumberCompact]}>{calculoFinal}</Text>
+              <Text style={styles.resultUnit}>{unidadConcentracion}</Text>
             </View>
-
-            <View style={styles.container1_5}>
-              <Text style={styles.label}>El resultado es: </Text>
-              <View>
-                <Text style={styles.label}>
-                  {calculofinal} {unidadgramo2}
-                </Text>
-              </View>
-            </View>
-
-            <StatusBar style="light" />
-        </ScrollView>
-      </View>
-    )
-
-
+            <Text style={styles.resultNote}>Verifica siempre la indicación del producto antes de administrarlo.</Text>
+          </View>
+        )}
+        <Text style={styles.footerNote}>Herramienta de apoyo para el cálculo veterinario</Text>
+        <StatusBar style="dark" />
+      </ScrollView>
+    </View>
+  );
 }
 
-const CreateStyles = (width,focuss,finish) => {
-  const responsive = (mobile,pc) => width < 800 ? mobile:pc;
-  const fo = focuss
-  const fi = finish
-  return StyleSheet.create({
-    container: {
-      flex:1,
-      backgroundColor: 'transparent',
-      zIndex: 1,
-    },
-
-    inside_container: {
-      flexGrow: 1,
-      alignContent: "space-between",
-      alignItems: 'center',
-      justifyContent:'center',
-    },
-
-    backgroundLogo: {
-      position: 'absolute',
-      width: 80,
-      height: 80,
-      alignSelf: 'center',
-      opacity: 0.50,
-      zIndex: -1,
-    },
-      // Contenedor principal del fondo fijo en la pantalla
-    backgroundContainer: {
-      ...StyleSheet.absoluteFillObject, // equivale a: top: 0, left: 0, right: 0, bottom: 0, position: 'absolute'
-      zIndex: -1, // Asegura que quede detrás del contenido interactivo
-      backgroundColor: '#F4FFF6', // Fondo transparente para que se vea el contenido detrás
-    },
-    // Recorta cualquier imagen que intente salir del área de la pantalla
-    background: {
-      flex: 1,
-      overflow: 'hidden', 
-    },
-
-    container1: {
-      flexDirection: responsive('column', 'row'),
-      flexWrap: "wrap",
-      height: "auto",
-      gap: 10,
-      justifyContent: "space-around",
-      alignItems: responsive('flex-start','center'),
-      borderWidth:1,
-      borderRadius:10,
-      borderColor:'#ccc',
-      margin:10,
-      paddingBottom: 10,
-      width: responsive('95%', '90%'),
-      backgroundColor: '#fff',
-      elevation: 3,
-      boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.4)',
-    },
-
-    container1_5: {
-      display: fi ? 'auto':'none',
-      flexDirection: 'row',
-      flexWrap: "wrap",
-      height: "auto",
-      width: '70%',
-      gap: 10,
-      justifyContent: "space-around",
-      alignItems: responsive('flex-start','center'),
-      borderWidth:1,
-      borderRadius:10,
-      borderColor:'#ccc',
-      margin:10,
-      paddingBottom: 10
-    },
-
-    conteiner2: {
-      marginTop: 10,
-      width: responsive('100%', '45%'),
-      gap: 10,
-      
-    },    
-
-    conteiner2_5: {
-      flexDirection: 'row',
-      flexWrap: "wrap",
-      marginTop: 10,
-      width: responsive('100%', '45%'),
-      justifyContent: 'center',
-      alignItems: 'center',
-      gap: responsive(0,10)
-    },  
-
-    container3: {
-      width: '45%',
-      alignItems: 'center',
-      justifyContent: 'flex-start',
-      gap: responsive(0,10)
-    },
-
-    label: {
-      fontSize: 15,
-      marginTop: 10,
-      marginLeft: 10,
-      marginBottom: 10,
-    },
-
-    label2: {
-      fontSize: 15,
-      marginLeft: 10,
-    },
-
-    label3: {
-      fontSize: responsive(10,'auto'), 
-      paddingTop:responsive(3,'auto'), 
-      paddingBottom:responsive(3,'auto')
-    },
-
-    inputtext: {
-      borderRadius:10,
-      borderWidth: 1,
-      height: "auto",
-      width: "90%",
-      alignSelf: "center",
-    },
-
-    inputtext2: {
-      borderRadius:10,
-      borderWidth: 1,
-      height: "auto",
-      width: "90%",
-      alignSelf: "center",
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-around",
-      borderColor: fo ? 'blue':'gray',
-    },
-
-    inputtext3: {
-      borderRadius:10,
-      borderWidth: 1,
-      height: "auto",
-      width: "90%",
-      alignSelf: "center",
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-around",
-      paddingLeft: 10,
-      borderColor: fo ? 'blue': 'gray'
-    },
-
-    buttonfinish: {
-      width: '90%',
-      borderColor: 'transparent',
-      borderRadius: 10,
-      backgroundColor: '#27BA75',
-      padding: 10,
-      alignItems: 'center',
-      margin: 10,
-    },
-
-    buttonfinishPressed: {
-      width: '90%',
-      borderColor: 'transparent',
-      borderRadius: 10,
-      backgroundColor: '#27BA75',
-      padding: 10,
-      alignItems: 'center',
-      margin: 10,
-      transform: [{scale : 0.95}],
-      opacity: 0.8,
-    }
-  });
-}
-
+const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  scroll: { flex: 1, backgroundColor: 'transparent' },
+  content: { flexGrow: 1, width: '100%', maxWidth: 680, alignSelf: 'center', paddingHorizontal: 16, paddingTop: 22, paddingBottom: 34 },
+  hero: { marginBottom: 16, paddingHorizontal: 4, flexDirection: 'row', alignItems: 'center', gap: 13 },
+  heroIcon: { width: 54, height: 54, justifyContent: 'center', alignItems: 'center', borderRadius: 18, backgroundColor: '#166534', elevation: 3 },
+  heroIconText: { color: '#FFFFFF', fontSize: 20, fontWeight: '800' },
+  heroCopy: { flex: 1 },
+  title: { color: '#14532D', fontSize: 27, fontWeight: '800', letterSpacing: -0.5 },
+  titleCompact: { fontSize: 23 },
+  subtitle: { marginTop: 3, color: '#4B5563', fontSize: 13, lineHeight: 18 },
+  formCard: { padding: 17, borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 18, backgroundColor: '#FFFFFF', elevation: 5 },
+  cardHeader: { marginBottom: 18 },
+  cardTitle: { color: '#111827', fontSize: 19, fontWeight: '700' },
+  required: { marginTop: 2, color: '#6B7280', fontSize: 12 },
+  fieldGroup: { gap: 10 },
+  fieldHeading: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  stepBadge: { width: 28, height: 28, justifyContent: 'center', alignItems: 'center', borderRadius: 9, backgroundColor: '#DCFCE7' },
+  stepText: { color: '#166534', fontSize: 14, fontWeight: '800' },
+  fieldCopy: { flex: 1 },
+  fieldLabel: { color: '#1F2937', fontSize: 15, fontWeight: '700' },
+  fieldHelp: { marginTop: 1, color: '#6B7280', fontSize: 12 },
+  inputShell: { minHeight: 56, flexDirection: 'row', alignItems: 'stretch', overflow: 'hidden', borderWidth: 1.5, borderColor: '#D1D5DB', borderRadius: 12, backgroundColor: '#F9FAFB' },
+  inputShellFocused: { borderColor: '#16A34A', backgroundColor: '#FFFFFF' },
+  input: { flex: 1, minWidth: 0, paddingHorizontal: 15, color: '#111827', fontSize: 19, fontWeight: '600' },
+  unitButton: { width: 88, paddingHorizontal: 8, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: '#DCFCE7', gap: 5 },
+  unitButtonPressed: { backgroundColor: '#BBF7D0' },
+  unitText: { color: '#14532D', fontSize: 13, fontWeight: '800' },
+  unitArrows: { color: '#16A34A', fontSize: 14 },
+  separator: { height: 1, marginVertical: 16, backgroundColor: '#F0F1F3' },
+  calculateButton: { minHeight: 56, marginTop: 22, paddingHorizontal: 18, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', borderRadius: 13, backgroundColor: '#166534', gap: 10, elevation: 3 },
+  calculateButtonDisabled: { backgroundColor: '#A7B8AC', elevation: 0 },
+  calculateButtonPressed: { opacity: 0.86, transform: [{ scale: 0.98 }] },
+  calculateButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
+  calculateArrow: { color: '#FFFFFF', fontSize: 23, lineHeight: 24 },
+  resultCard: { marginTop: 16, padding: 20, alignItems: 'center', borderWidth: 1, borderColor: '#86EFAC', borderRadius: 18, backgroundColor: '#F0FDF4', elevation: 3 },
+  resultCheck: { width: 32, height: 32, marginBottom: 8, justifyContent: 'center', alignItems: 'center', borderRadius: 16, backgroundColor: '#16A34A' },
+  resultCheckText: { color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' },
+  resultEyebrow: { color: '#166534', fontSize: 11, fontWeight: '800', letterSpacing: 1.4 },
+  resultLine: { marginVertical: 4, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: 7 },
+  resultNumber: { color: '#14532D', fontSize: 42, fontWeight: '800', letterSpacing: -1 },
+  resultNumberCompact: { fontSize: 35 },
+  resultUnit: { color: '#166534', fontSize: 16, fontWeight: '700' },
+  resultNote: { maxWidth: 410, color: '#4B5563', fontSize: 12, lineHeight: 17, textAlign: 'center' },
+  footerNote: { marginTop: 18, color: '#6B7280', fontSize: 11, textAlign: 'center' },
+});

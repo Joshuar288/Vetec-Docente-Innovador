@@ -1,15 +1,355 @@
-import { View,Text,Button,StyleSheet,TextInput,TouchableOpacity, Pressable, ScrollView, Animated, Dimensions, Image} from "react-native";
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Pressable, ScrollView, Modal, FlatList } from "react-native";
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect, useRef, useMemo} from "react";
+import { useState, useEffect } from "react";
 import { useWindowDimensions } from "react-native";
-import { Picker } from '@react-native-picker/picker';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useIsFocused } from '@react-navigation/native';
+import AnimatedLogoBackground from '../../components/AnimatedLogoBackground';
+
+function SelectorIngrediente({ items, selectedId, onSelect, placeholder }) {
+  const [visible, setVisible] = useState(false);
+  const [busqueda, setBusqueda] = useState('');
+  const seleccionado = items.find((item) => item.id === selectedId);
+  const termino = busqueda.trim().toLocaleLowerCase('es');
+  const resultados = termino
+    ? items.filter((item) => item.label.toLocaleLowerCase('es').includes(termino))
+    : items;
+
+  const cerrar = () => {
+    setVisible(false);
+    setBusqueda('');
+  };
+
+  return (
+    <>
+      <TouchableOpacity
+        style={selectorStyles.control}
+        onPress={() => setVisible(true)}
+        accessibilityRole="button"
+        accessibilityLabel={placeholder}
+      >
+        <Text style={selectorStyles.controlText} numberOfLines={2}>
+          {seleccionado?.label || placeholder}
+        </Text>
+        <Text style={selectorStyles.arrow}>▼</Text>
+      </TouchableOpacity>
+
+      <Modal visible={visible} transparent animationType="fade" onRequestClose={cerrar}>
+        <View style={selectorStyles.backdrop}>
+          <View style={selectorStyles.modal}>
+            <View style={selectorStyles.header}>
+              <Text style={selectorStyles.title}>{placeholder}</Text>
+              <Pressable onPress={cerrar} hitSlop={12} accessibilityRole="button">
+                <Text style={selectorStyles.close}>✕</Text>
+              </Pressable>
+            </View>
+
+            <TextInput
+              style={selectorStyles.search}
+              value={busqueda}
+              onChangeText={setBusqueda}
+              placeholder="Buscar ingrediente..."
+              placeholderTextColor="#6B7280"
+              autoCorrect={false}
+            />
+
+            <FlatList
+              data={resultados}
+              keyExtractor={(item) => String(item.id)}
+              keyboardShouldPersistTaps="handled"
+              ListEmptyComponent={<Text style={selectorStyles.empty}>No se encontraron ingredientes.</Text>}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[selectorStyles.option, item.id === selectedId && selectorStyles.selectedOption]}
+                  onPress={() => {
+                    onSelect(item.id);
+                    cerrar();
+                  }}
+                >
+                  <Text style={selectorStyles.optionText}>{item.label}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+    </>
+  );
+}
+
+const selectorStyles = StyleSheet.create({
+  control: {
+    minHeight: 48,
+    width: '100%',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: '#9CA3AF',
+    borderRadius: 6,
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  controlText: { flex: 1, color: '#111827', fontSize: 12 },
+  arrow: { color: '#166534', fontSize: 12, marginLeft: 6 },
+  backdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+  },
+  modal: {
+    width: '100%',
+    maxWidth: 680,
+    maxHeight: '88%',
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+  },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  title: { flex: 1, color: '#111827', fontSize: 18, fontWeight: 'bold' },
+  close: { color: '#374151', fontSize: 22, paddingHorizontal: 4 },
+  search: {
+    height: 60,
+    marginBottom: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#9CA3AF',
+    borderRadius: 8,
+    color: '#111827',
+    backgroundColor: '#FFFFFF',
+  },
+  option: { paddingHorizontal: 12, paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: '#E5E7EB' },
+  selectedOption: { backgroundColor: '#DCFCE7' },
+  optionText: { color: '#111827', fontSize: 15 },
+  empty: { padding: 20, color: '#4B5563', textAlign: 'center' },
+});
+
+function ContenidoPearson({
+  ingredientesProteicos, ingredientesNutreicos, idProteico, idNutreico,
+  seleccionarIngredienteProteico, seleccionarIngredienteNutreico,
+  proteico, nutreico, valDeseado, setValDeseado, soloNumeros,
+  parteProteico, parteNutreico, proporcionProteico, proporcionNutreico,
+  ingredienteProteico, ingredienteNutreico, librasProteico, librasNutreico,
+}) {
+  const { width } = useWindowDimensions();
+  const compact = width < 700;
+  const s = responsiveStyles;
+  const totalCantidad = (parseFloat(proporcionNutreico) + parseFloat(proporcionProteico)).toFixed(2);
+  const totalProteina = (parseFloat(librasNutreico) + parseFloat(librasProteico)).toFixed(2);
+
+  const bloqueResultado = (nombre, cantidad, proteina) => (
+    <View style={[s.sourceResult, compact && s.sourceResultCompact]}>
+      <Text style={s.sourceName} numberOfLines={3}>{nombre}</Text>
+      <View style={s.resultMetrics}>
+        <View style={s.resultMetric}>
+          <Text style={s.resultLabel}>Cantidad</Text>
+          <Text style={s.resultValue}>{cantidad} lb</Text>
+        </View>
+        <View style={s.resultMetric}>
+          <Text style={s.resultLabel}>Proteína</Text>
+          <Text style={s.resultValue}>{proteina} lb</Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  return (
+    <>
+      <View style={s.card}>
+        <Text style={s.title}>Cuadrado de Pearson</Text>
+        <Text style={s.hint}>Selecciona las fuentes y escribe la concentración deseada.</Text>
+        <View style={[s.selectors, compact && s.stack]}>
+          <View style={s.selectorColumn}>
+            <Text style={s.label}>Fuente proteica</Text>
+            <SelectorIngrediente items={ingredientesProteicos} selectedId={idProteico} onSelect={seleccionarIngredienteProteico} placeholder="Ingrediente proteico" />
+          </View>
+          <View style={s.selectorColumn}>
+            <Text style={s.label}>Fuente energética</Text>
+            <SelectorIngrediente items={ingredientesNutreicos} selectedId={idNutreico} onSelect={seleccionarIngredienteNutreico} placeholder="Ingrediente energético" />
+          </View>
+        </View>
+
+        <View style={s.metricsGrid}>
+          <View style={s.metricCard}>
+            <Text style={s.metricTitle}>Proteína bruta</Text>
+            <Text style={s.metricValue}>{proteico}%</Text><View style={s.divider} /><Text style={s.metricValue}>{nutreico}%</Text>
+          </View>
+          <View style={s.metricCard}>
+            <Text style={s.metricTitle}>Concentración deseada</Text>
+            <TextInput keyboardType="numeric" value={String(valDeseado)} onChangeText={(text) => soloNumeros(text, setValDeseado)} style={s.input} placeholder="0" placeholderTextColor="#6B7280" selectTextOnFocus />
+          </View>
+          <View style={s.metricCard}>
+            <Text style={s.metricTitle}>Partes</Text>
+            <Text style={s.metricValue}>{parteProteico || '0.00'}</Text><View style={s.divider} /><Text style={s.metricValue}>{parteNutreico || '0.00'}</Text>
+          </View>
+          <View style={s.metricCard}>
+            <Text style={s.metricTitle}>Proporción</Text>
+            <Text style={s.metricValue}>{proporcionProteico}%</Text><View style={s.divider} /><Text style={s.metricValue}>{proporcionNutreico}%</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={s.card}>
+        <Text style={s.resultsTitle}>Resultados por cada 100 lb</Text>
+        <View style={[s.results, compact && s.stack]}>
+          {bloqueResultado(ingredienteProteico, proporcionProteico, librasProteico)}
+          {bloqueResultado(ingredienteNutreico, proporcionNutreico, librasNutreico)}
+        </View>
+        <View style={[s.total, compact && s.totalCompact]}>
+          <Text style={s.totalLabel}>Total</Text>
+          <Text style={s.totalValue}>{totalCantidad} lb</Text>
+          <Text style={s.totalValue}>{totalProteina}% de proteína</Text>
+        </View>
+      </View>
+    </>
+  );
+}
+
+const responsiveStyles = StyleSheet.create({
+  card: { width: '100%', maxWidth: 1000, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#D1D5DB', backgroundColor: '#FFFFFF', elevation: 3, gap: 10 },
+  title: { color: '#14532D', fontSize: 19, fontWeight: 'bold', textAlign: 'center' },
+  hint: { color: '#4B5563', fontSize: 12, textAlign: 'center' },
+  selectors: { flexDirection: 'row', gap: 9 },
+  stack: { flexDirection: 'column' },
+  selectorColumn: { flex: 1, minWidth: 0, gap: 6 },
+  label: { color: '#1F2937', fontSize: 13, fontWeight: '600' },
+  metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  metricCard: { flexGrow: 1, flexBasis: 115, minWidth: 105, minHeight: 112, padding: 8, justifyContent: 'space-around', alignItems: 'center', borderWidth: 1, borderColor: '#BBF7D0', borderRadius: 9, backgroundColor: '#F0FDF4' },
+  metricTitle: { minHeight: 30, color: '#374151', fontSize: 12, fontWeight: '600', textAlign: 'center' },
+  metricValue: { color: '#111827', fontSize: 17, fontWeight: 'bold', textAlign: 'center' },
+  divider: { width: '75%', height: 1, backgroundColor: '#D1D5DB' },
+  input: { width: '85%', minHeight: 44, paddingHorizontal: 8, borderWidth: 2, borderColor: '#16A34A', borderRadius: 8, backgroundColor: '#FFFFFF', color: '#111827', fontSize: 18, fontWeight: 'bold', textAlign: 'center' },
+  resultsTitle: { color: '#14532D', fontSize: 17, fontWeight: 'bold', textAlign: 'center' },
+  results: { flexDirection: 'row', gap: 12 },
+  sourceResult: { flex: 1, minWidth: 0, padding: 9, borderRadius: 10, backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB', gap: 7 },
+  sourceResultCompact: { width: '100%' },
+  sourceName: { minHeight: 42, color: '#111827', fontSize: 14, fontWeight: '600', textAlign: 'center' },
+  resultMetrics: { flexDirection: 'row' },
+  resultMetric: { flex: 1, alignItems: 'center', gap: 4 },
+  resultLabel: { color: '#6B7280', fontSize: 13 },
+  resultValue: { color: '#166534', fontSize: 16, fontWeight: 'bold' },
+  total: { minHeight: 46, paddingHorizontal: 12, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', borderRadius: 9, backgroundColor: '#166534', gap: 8 },
+  totalCompact: { flexWrap: 'wrap', paddingVertical: 10 },
+  totalLabel: { color: '#FFFFFF', fontSize: 17, fontWeight: 'bold' },
+  totalValue: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+});
+
+function VistaCuadradoPearson(props) {
+  const {
+    ingredientesProteicos, ingredientesNutreicos, idProteico, idNutreico,
+    seleccionarIngredienteProteico, seleccionarIngredienteNutreico,
+    proteico, nutreico, valDeseado, setValDeseado, soloNumeros,
+    parteProteico, parteNutreico, proporcionProteico, proporcionNutreico,
+    ingredienteProteico, ingredienteNutreico, librasProteico, librasNutreico,
+  } = props;
+  const { width } = useWindowDimensions();
+  const compact = width < 700;
+  const s = classicStyles;
+
+  return (
+    <>
+      <View style={s.card}>
+        <Text style={s.title}>Cuadrado de Pearson</Text>
+        <Text style={s.subtitle}>Balance de proteína bruta</Text>
+
+        <View style={[s.selectors, compact && s.selectorsCompact]}>
+          <View style={s.selectorColumn}>
+            <Text style={s.selectorLabel}>1 · Fuente proteica</Text>
+            <SelectorIngrediente items={ingredientesProteicos} selectedId={idProteico} onSelect={seleccionarIngredienteProteico} placeholder="Ingrediente proteico" />
+          </View>
+          <View style={s.selectorColumn}>
+            <Text style={s.selectorLabel}>2 · Fuente energética</Text>
+            <SelectorIngrediente items={ingredientesNutreicos} selectedId={idNutreico} onSelect={seleccionarIngredienteNutreico} placeholder="Ingrediente energético" />
+          </View>
+        </View>
+
+        <View style={s.columnHeadings}>
+          <Text style={s.heading}>Proteína bruta</Text>
+          <Text style={s.heading}>Concentración</Text>
+          <Text style={s.heading}>Partes</Text>
+        </View>
+
+        <View style={[s.diagram, compact && s.diagramCompact]}>
+          <View style={[s.diagonal, s.diagonalDown]} />
+          <View style={[s.diagonal, s.diagonalUp]} />
+
+          <View style={[s.valueNode, s.topLeft]}><Text style={s.nodeValue}>{proteico}%</Text><Text style={s.nodeCaption}>Proteica</Text></View>
+          <View style={[s.valueNode, s.bottomLeft]}><Text style={s.nodeValue}>{nutreico}%</Text><Text style={s.nodeCaption}>Energética</Text></View>
+
+          <View style={s.centerNode}>
+            <Text style={s.centerLabel}>Deseada</Text>
+            <TextInput keyboardType="numeric" value={String(valDeseado)} onChangeText={(text) => soloNumeros(text, setValDeseado)} style={s.centerInput} placeholder="0" placeholderTextColor="#86A48F" selectTextOnFocus />
+            <Text style={s.percent}>%</Text>
+          </View>
+
+          <View style={[s.valueNode, s.topRight]}><Text style={s.nodeValue}>{parteProteico || '0.00'}</Text><Text style={s.nodeCaption}>partes</Text></View>
+          <View style={[s.valueNode, s.bottomRight]}><Text style={s.nodeValue}>{parteNutreico || '0.00'}</Text><Text style={s.nodeCaption}>partes</Text></View>
+        </View>
+
+        <View style={s.proportions}>
+          <View style={s.proportion}><Text style={s.proportionName}>Fuente proteica</Text><Text style={s.proportionValue}>{proporcionProteico}%</Text></View>
+          <View style={s.proportion}><Text style={s.proportionName}>Fuente energética</Text><Text style={s.proportionValue}>{proporcionNutreico}%</Text></View>
+        </View>
+      </View>
+
+      <View style={s.resultsCard}>
+        <Text style={s.resultsTitle}>Mezcla por cada 100 lb</Text>
+        <View style={[s.resultRow, compact && s.resultRowCompact]}>
+          <View style={s.resultSource}><Text style={s.resultName} numberOfLines={2}>{ingredienteProteico}</Text><Text style={s.resultAmount}>{proporcionProteico} lb</Text><Text style={s.resultProtein}>{librasProteico}% de proteína</Text></View>
+          <View style={s.resultSeparator} />
+          <View style={s.resultSource}><Text style={s.resultName} numberOfLines={2}>{ingredienteNutreico}</Text><Text style={s.resultAmount}>{proporcionNutreico} lb</Text><Text style={s.resultProtein}>{librasNutreico}% de proteína</Text></View>
+        </View>
+      </View>
+    </>
+  );
+}
+
+const classicStyles = StyleSheet.create({
+  card: { width: '100%', maxWidth: 1000, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: '#BBF7D0', backgroundColor: '#FFFFFF', elevation: 4 },
+  title: { color: '#14532D', fontSize: 20, fontWeight: 'bold', textAlign: 'center' },
+  subtitle: { marginTop: 1, marginBottom: 10, color: '#6B7280', fontSize: 12, textAlign: 'center' },
+  selectors: { flexDirection: 'row', gap: 9 },
+  selectorsCompact: { flexDirection: 'column' },
+  selectorColumn: { flex: 1, minWidth: 0, gap: 6 },
+  selectorLabel: { color: '#166534', fontSize: 12, fontWeight: '700' },
+  columnHeadings: { marginTop: 12, paddingHorizontal: 8, flexDirection: 'row', justifyContent: 'space-between' },
+  heading: { width: '30%', color: '#4B5563', fontSize: 10, fontWeight: '700', textAlign: 'center', textTransform: 'uppercase' },
+  diagram: { width: '100%', height: 184, position: 'relative', overflow: 'hidden' },
+  diagramCompact: { height: 176 },
+  diagonal: { position: 'absolute', left: '20%', top: '50%', width: '60%', height: 3, borderRadius: 2, backgroundColor: '#22C55E' },
+  diagonalDown: { transform: [{ rotate: '19deg' }] },
+  diagonalUp: { transform: [{ rotate: '-19deg' }] },
+  valueNode: { position: 'absolute', width: '23%', minWidth: 74, minHeight: 56, padding: 5, zIndex: 2, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#86EFAC', borderRadius: 10, backgroundColor: '#F0FDF4' },
+  topLeft: { left: 0, top: 10 },
+  bottomLeft: { left: 0, bottom: 10 },
+  topRight: { right: 0, top: 10 },
+  bottomRight: { right: 0, bottom: 10 },
+  nodeValue: { color: '#14532D', fontSize: 17, fontWeight: 'bold' },
+  nodeCaption: { color: '#6B7280', fontSize: 10, textAlign: 'center' },
+  centerNode: { position: 'absolute', left: '39%', top: 46, width: '22%', minHeight: 92, zIndex: 3, padding: 5, justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: '#166534', borderRadius: 46, backgroundColor: '#FFFFFF', elevation: 5 },
+  centerLabel: { color: '#166534', fontSize: 9, fontWeight: '700', textTransform: 'uppercase' },
+  centerInput: { width: '70%', minHeight: 38, padding: 0, color: '#111827', fontSize: 21, fontWeight: 'bold', textAlign: 'center' },
+  percent: { position: 'absolute', right: 8, bottom: 23, color: '#166534', fontSize: 12, fontWeight: 'bold' },
+  proportions: { flexDirection: 'row', gap: 8 },
+  proportion: { flex: 1, minHeight: 48, paddingHorizontal: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderRadius: 9, backgroundColor: '#166534', gap: 5 },
+  proportionName: { flex: 1, color: '#DCFCE7', fontSize: 11, fontWeight: '600' },
+  proportionValue: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
+  resultsCard: { width: '100%', maxWidth: 1000, padding: 11, borderRadius: 12, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#D1D5DB', elevation: 3 },
+  resultsTitle: { marginBottom: 7, color: '#14532D', fontSize: 16, fontWeight: 'bold', textAlign: 'center' },
+  resultRow: { flexDirection: 'row', alignItems: 'stretch' },
+  resultRowCompact: { flexDirection: 'column', gap: 10 },
+  resultSource: { flex: 1, padding: 8, alignItems: 'center', gap: 3 },
+  resultSeparator: { width: 1, backgroundColor: '#D1D5DB' },
+  resultName: { minHeight: 36, color: '#374151', fontSize: 13, fontWeight: '600', textAlign: 'center' },
+  resultAmount: { color: '#166534', fontSize: 17, fontWeight: 'bold' },
+  resultProtein: { color: '#6B7280', fontSize: 12 },
+});
 
 export default function CalcularDosis() {
-  const {width} = useWindowDimensions();
-  const {height} = useWindowDimensions();
-  const styles = CreateStyles(width, height);
+  const { width } = useWindowDimensions();
+  const styles = CreateStyles(width);
   const [proteico, setProteico] = useState(0);
   const [nutreico, setNutreico] = useState(0);
   const [valDeseado, setValDeseado] = useState(0);
@@ -20,50 +360,11 @@ export default function CalcularDosis() {
   const isFocused = useIsFocused();
   const [idProteico, setIdProteico] = useState(0);
   const [idNutreico, setIdNutreico] = useState(0);
+  const [vista, setVista] = useState('cuadrado');
   const [ingredienteProteico, setIngredienteProteico] = useState('Sin ingrediente seleccionado');
   const [ingredienteNutreico, setIngredienteNutreico] = useState('Sin ingrediente seleccionado');
   const [librasProteico, setLibrasProteico] = useState('Sin Calcular');
   const [librasNutreico, setLibrasNutreico] = useState('Sin Calcular');
-  const moveX = useRef(new Animated.Value(0)).current;
-  const moveY = useRef(new Animated.Value(0)).current;
-  const logoPositions = useMemo(() => {
-    return Array.from({ length: 50 }, () => ({
-      top: Math.random() * height,
-      left: Math.random() * width,
-    }));
-  }, [width, height]);
-
-useEffect(() => {
-  Animated.loop(
-    Animated.sequence([
-      Animated.parallel([
-        Animated.timing(moveX, {
-          toValue: -30,
-          duration: 4000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(moveY, {
-          toValue: -30,
-          duration: 4000,
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.parallel([
-        Animated.timing(moveX, {
-          toValue: 30,
-          duration: 4000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(moveY, {
-          toValue: 30,
-          duration: 4000,
-          useNativeDriver: true,
-        }),
-      ]),
-    ])
-  ).start();
-}, []);
-
 const ingredientesProteicos = [
   { id: 0, label: 'DDGS CEBADA (24.9%)', value: 24.9 },
   { id: 1, label: 'DDGS MAIZ 7.5%EE-6.8%ALM (27.5%)', value: 27.5 },
@@ -348,194 +649,85 @@ const ingredientesNutreicos = [
 return (
     <View style={{ flex: 1 }}>
       {/* Fondo de pantalla fijo - Fuera del ScrollView */}
-      <View style={styles.backgroundContainer} pointerEvents="none">
-        <View style={styles.background}>
-          {logoPositions.map((pos, i) => (
-            <Animated.Image
-              key={i}
-              source={require('../../assets/LogoAulaMix.png')}
-              style={[
-                styles.backgroundLogo,
-                {
-                  position: 'absolute',
-                  top: pos.top,
-                  left: pos.left,
-                  transform: [
-                    { translateX: moveX },
-                    { translateY: moveY },
-                  ],
-                },
-              ]}
-              resizeMode="contain"
-            />
-          ))}
-        </View>
-      </View>
+      <AnimatedLogoBackground count={30} />
 
       {/* Formulario scrolleable sobre el fondo */}
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.inside_container}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.container1}>
-          <View style={styles.fila1}>
-            <View style={[styles.container2, { justifyContent: 'center' }]}>
-              <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}>Ingrediente</Text>
-            </View>
-
-            <View style={styles.container2}>
-              <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}>Proteina Bruta</Text>
-            </View>
-
-            <View style={styles.container2}>
-              <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}>Concentracion deseada</Text>
-            </View>
-
-            <View style={styles.container2}>
-              <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}>Partes</Text>
-            </View>
-
-            <View style={styles.container2}>
-              <Text style={{ textAlign: 'center', fontSize: 20, fontWeight: 'bold' }}>Proporcion por Fuentes</Text>
-            </View>
-
-            <View style={styles.lineaseparadora} />
-          </View>
-
-          <View style={styles.fila2}>
-            <View style={styles.container2}>
-              <Picker
-                style={styles.selectPicker}
-                selectedValue={idProteico}
-                onValueChange={(itemValue) => seleccionarIngredienteProteico(itemValue)}
-              >
-                {ingredientesProteicos.map((item) => (
-                  <Picker.Item
-                    key={item.id}
-                    label={item.label}
-                    value={item.id}
-                  />
-                ))}
-              </Picker>
-
-              <Picker
-                style={styles.selectPicker}
-                selectedValue={idNutreico}
-                onValueChange={(itemValue) => seleccionarIngredienteNutreico(itemValue)}
-              >
-                {ingredientesNutreicos.map((item) => (
-                  <Picker.Item
-                    key={item.id}
-                    label={item.label}
-                    value={item.id}
-                  />
-                ))}
-              </Picker>
-            </View>
-
-            <View style={styles.squarePearson}>
-              <View style={styles.container3}>
-                <Text style={{ textAlign: 'center' }}> {proteico} </Text>
-                <Text style={{ textAlign: 'center' }}> {nutreico} </Text>
-              </View>
-
-              <View style={[styles.container3, { justifyContent: 'center' }]}>
-                <TextInput
-                  keyboardType="numeric"
-                  value={String(valDeseado)}
-                  onChangeText={(text) => soloNumeros(text, setValDeseado)}
-                  style={{
-                    textAlign: 'center',
-                    borderColor: '#ccc',
-                    borderWidth: 1,
-                    borderRadius: 5,
-                    height: 50,
-                  }}
-                />
-              </View>
-
-              <View style={styles.container3}>
-                <Text style={{ textAlign: 'center' }}> {parteProteico} </Text>
-                <Text style={{ textAlign: 'center' }}>{parteNutreico}</Text>
-              </View>
-            </View>
-
-            <View style={styles.container2}>
-              <Text style={{ textAlign: 'center' }}> {proporcionProteico}</Text>
-              <Text style={{ textAlign: 'center' }}> {proporcionNutreico}</Text>
-            </View>
-          </View>
+        <View style={styles.viewSwitcher} accessibilityRole="tablist">
+          <Pressable
+            style={[styles.viewButton, vista === 'cuadrado' && styles.viewButtonActive]}
+            onPress={() => setVista('cuadrado')}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: vista === 'cuadrado' }}
+          >
+            <Text style={[styles.viewButtonText, vista === 'cuadrado' && styles.viewButtonTextActive]}>Vista cuadrado</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.viewButton, vista === 'tarjetas' && styles.viewButtonActive]}
+            onPress={() => setVista('tarjetas')}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: vista === 'tarjetas' }}
+          >
+            <Text style={[styles.viewButtonText, vista === 'tarjetas' && styles.viewButtonTextActive]}>Vista tarjetas</Text>
+          </Pressable>
         </View>
 
-        <View style={styles.container1_1}>
-          <View style={styles.filas}>
-            <View style={[styles.container2, { justifyContent: 'center' }]}>
-              <Text style={{ textAlign: 'center', fontSize: 15, fontWeight: 'bold' }}>Ingrediente</Text>
-            </View>
+        {vista === 'cuadrado' && <VistaCuadradoPearson
+          ingredientesProteicos={ingredientesProteicos}
+          ingredientesNutreicos={ingredientesNutreicos}
+          idProteico={idProteico}
+          idNutreico={idNutreico}
+          seleccionarIngredienteProteico={seleccionarIngredienteProteico}
+          seleccionarIngredienteNutreico={seleccionarIngredienteNutreico}
+          proteico={proteico}
+          nutreico={nutreico}
+          valDeseado={valDeseado}
+          setValDeseado={setValDeseado}
+          soloNumeros={soloNumeros}
+          parteProteico={parteProteico}
+          parteNutreico={parteNutreico}
+          proporcionProteico={proporcionProteico}
+          proporcionNutreico={proporcionNutreico}
+          ingredienteProteico={ingredienteProteico}
+          ingredienteNutreico={ingredienteNutreico}
+          librasProteico={librasProteico}
+          librasNutreico={librasNutreico}
+        />}
 
-            <View style={styles.container2}>
-              <Text style={{ textAlign: 'center', fontSize: 15, fontWeight: 'bold' }}>Cantidad por 100 LB</Text>
-            </View>
-
-            <View style={styles.container2}>
-              <Text style={{ textAlign: 'center', fontSize: 15, fontWeight: 'bold' }}>Cantidad de proteinas</Text>
-            </View>
-
-            <View style={styles.lineaseparadora} />
-          </View>
-
-          <View style={styles.filas}>
-            <View style={styles.textStatus}>
-              <Text style={{ textAlign: 'center', fontSize: 15 }}>{ingredienteProteico}</Text>
-            </View>
-
-            <View style={styles.textStatus}>
-              <Text style={{ textAlign: 'center', fontSize: 15 }}>{proporcionProteico}</Text>
-            </View>
-
-            <View style={styles.textStatus}>
-              <Text style={{ textAlign: 'center', fontSize: 15 }}>{librasProteico}</Text>
-            </View>
-          </View>
-
-          <View style={styles.filas}>
-            <View style={styles.textStatus}>
-              <Text style={{ textAlign: 'center', fontSize: 15 }}>{ingredienteNutreico}</Text>
-            </View>
-
-            <View style={styles.textStatus}>
-              <Text style={{ textAlign: 'center', fontSize: 15 }}>{proporcionNutreico}</Text>
-            </View>
-
-            <View style={styles.textStatus}>
-              <Text style={{ textAlign: 'center', fontSize: 15 }}>{librasNutreico}</Text>
-            </View>
-          </View>
-
-          <View style={styles.filas}>
-            <View style={styles.textStatus}>
-              <Text style={{ textAlign: 'center', fontSize: 15 }}>Total</Text>
-            </View>
-
-            <View style={styles.textStatus}>
-              <Text style={{ textAlign: 'center', fontSize: 15 }}>{(parseFloat(proporcionNutreico) + parseFloat(proporcionProteico)).toFixed(2)}</Text>
-            </View>
-
-            <View style={styles.textStatus}>
-              <Text style={{ textAlign: 'center', fontSize: 15 }}>{(parseFloat(librasNutreico) + parseFloat(librasProteico)).toFixed(2)}</Text>
-            </View>
-          </View>
-        </View>
-
+        {vista === 'tarjetas' && <ContenidoPearson
+          ingredientesProteicos={ingredientesProteicos}
+          ingredientesNutreicos={ingredientesNutreicos}
+          idProteico={idProteico}
+          idNutreico={idNutreico}
+          seleccionarIngredienteProteico={seleccionarIngredienteProteico}
+          seleccionarIngredienteNutreico={seleccionarIngredienteNutreico}
+          proteico={proteico}
+          nutreico={nutreico}
+          valDeseado={valDeseado}
+          setValDeseado={setValDeseado}
+          soloNumeros={soloNumeros}
+          parteProteico={parteProteico}
+          parteNutreico={parteNutreico}
+          proporcionProteico={proporcionProteico}
+          proporcionNutreico={proporcionNutreico}
+          ingredienteProteico={ingredienteProteico}
+          ingredienteNutreico={ingredienteNutreico}
+          librasProteico={librasProteico}
+          librasNutreico={librasNutreico}
+        />}
         <StatusBar style="light" />
       </ScrollView>
     </View>
   );
 }
 
-const CreateStyles = (width, height) => {
-  const responsive = (mobile,pc) => width < 800 ? mobile:pc;
-  const responsiveHeight = (mobile,pc) => height < 600 ? mobile:pc;
+const CreateStyles = (width) => {
+  const responsive = (mobile, pc) => width < 800 ? mobile : pc;
   
   return StyleSheet.create({
     container: {
@@ -546,131 +738,49 @@ const CreateStyles = (width, height) => {
 
     inside_container: {
       flexGrow: 1,
-      alignContent: "space-between",
       alignItems: 'center',
-      justifyContent:'center',
-      flexDirection: 'column',
-      gap: responsiveHeight(10, 50),
+      justifyContent: 'flex-start',
+      paddingHorizontal: responsive(8, 18),
+      paddingTop: responsive(8, 18),
+      paddingBottom: 20,
+      gap: responsive(9, 16),
     },
 
-    backgroundLogo: {
-      position: 'absolute',
-      width: 80,
-      height: 80,
-      alignSelf: 'center',
-      opacity: 0.50,
+    viewSwitcher: {
+      width: '100%',
+      maxWidth: 520,
+      minHeight: 42,
+      padding: 3,
+      flexDirection: 'row',
+      borderRadius: 10,
+      backgroundColor: '#DCFCE7',
     },
 
-      // Contenedor principal del fondo fijo en la pantalla
-    backgroundContainer: {
-      ...StyleSheet.absoluteFillObject, // equivale a: top: 0, left: 0, right: 0, bottom: 0, position: 'absolute'
-      zIndex: -1, // Asegura que quede detrás del contenido interactivo
-      backgroundColor: '#F4FFF6', // Fondo transparente para que se vea el contenido detrás
-    },
-
-    // Recorta cualquier imagen que intente salir del área de la pantalla
-    background: {
+    viewButton: {
       flex: 1,
-      overflow: 'hidden', 
-    },
-
-    container1: {
-      gap: 10,
+      minHeight: 36,
+      paddingHorizontal: 10,
+      justifyContent: 'center',
       alignItems: 'center',
-      borderWidth:1,
-      borderRadius:10,
-      borderColor:'#ccc',   
-      marginTop:30,
-      paddingBottom: 10,
-      width: responsiveHeight('85%', '75%'),
-      height: responsiveHeight(300, 340),
-      backgroundColor: '#fff',
-      elevation: 3,
-      boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.4)',
+      borderRadius: 8,
     },
 
-    container1_1: {
-      gap: 10,
-      alignItems: 'center',
-      borderWidth:1,
-      borderRadius:10,
-      borderColor:'#ccc',   
-      margin:10,
-      paddingBottom: 10,
-      width: '60%',
-      height: 300,
-      backgroundColor: '#fff',
-      elevation: 3,
-      boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.4)',
+    viewButtonActive: {
+      backgroundColor: '#166534',
+      elevation: 2,
     },
 
-    fila1: {
-      width: '100%',
-      flexDirection:'row',
-      flexWrap:'wrap',
-      justifyContent: "space-around",
-      alignItems: 'center',
-    },
-
-    filas: {
-      width: '100%',
-      flexDirection:'row',
-      flexWrap:'wrap',
-      justifyContent: "space-around",
-      alignItems: 'center',
-    },
-      
-    fila2: {
-      width: '95%',
-      height: responsiveHeight(180, 200),
-      justifyContent: "space-between",
-      margin: 20,
-      flexDirection:'row',
-    },
-
-    container2: {
-      width: '15%',
-      justifyContent: "space-between",
-      margin: 5,
-    },
-
-    container3: {
-      width: '15%',
-      height: '90%',
-      justifyContent: "space-between",
-      margin: 10,
+    viewButtonText: {
+      color: '#166534',
+      fontSize: responsive(12, 14),
+      fontWeight: '600',
       textAlign: 'center',
     },
 
-    lineaseparadora: {
-      width: '100%',
-      height: 0,
-      borderColor: '#ccc',
-      borderWidth:1,
-    },
-    
-    selectPicker: {
-      height: responsiveHeight(50, 40),
-      width: '100%',
+    viewButtonTextActive: {
+      color: '#FFFFFF',
     },
 
-    squarePearson: {
-      width: "55%",
-      height: responsiveHeight(180, 200),
-      borderColor: '#ccc',
-      borderWidth: 1,
-      borderRadius: 5,
-      marginLeft: 10,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-
-    textStatus: {
-      width: '20%',
-      height: 50,
-      margin: 5,
-    },
   });
 }
 
