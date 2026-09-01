@@ -12,4 +12,5 @@ nginx:
 
 commands:
   - npm ci
-  - npm run build
+  - NODE_OPTIONS="--jitless --max-old-space-size=384" npm run build
+  - test -f dist/index.html
