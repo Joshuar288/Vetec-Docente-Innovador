@@ -1,0 +1,15 @@
+source: https://github.com/Joshuar288/Vetec-Docente-Innovador
+
+features:
+  - node 20
+
+nginx:
+  root: public_html/dist
+  index: index.html
+  locations:
+    - match: /
+      try_files: $uri $uri/ /index.html
+
+commands:
+  - npm ci
+  - npm run build
