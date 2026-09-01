@@ -21,6 +21,11 @@ Router sin errores 404.
 Después de cambiar la aplicación, ejecutar `npm run build`, subir también los
 cambios generados en `dist` a `main` y desplegar nuevamente desde DOM Cloud.
 
+GitHub Actions también ejecuta automáticamente la compilación al recibir cambios
+en `main` y guarda el nuevo contenido de `dist`. Para publicar ese resultado sin
+intervención manual todavía debe conectarse el webhook generado en **Setup >
+Deploy > Setup Webhook** de DOM Cloud.
+
 ## Verificación local
 
 ```sh
