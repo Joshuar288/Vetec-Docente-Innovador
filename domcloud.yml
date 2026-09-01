@@ -1,8 +1,5 @@
 source: https://github.com/Joshuar288/Vetec-Docente-Innovador
 
-features:
-  - node 20
-
 nginx:
   root: public_html/dist
   index: index.html
@@ -11,6 +8,4 @@ nginx:
       try_files: $uri $uri/ /index.html
 
 commands:
-  - npm ci
-  - NODE_OPTIONS="--jitless --max-old-space-size=384" npm run build
   - test -f dist/index.html

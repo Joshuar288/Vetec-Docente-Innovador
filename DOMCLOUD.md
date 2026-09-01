@@ -1,7 +1,8 @@
 # Despliegue en DOM Cloud
 
 La aplicación se exporta como una SPA estática de Expo Router en la carpeta
-`dist`. La carpeta es generada y no se guarda en Git.
+`dist`. La carpeta se guarda en Git para que DOM Cloud no tenga que compilar
+Expo dentro de un servidor con memoria limitada.
 
 ## Despliegue inicial
 
@@ -10,16 +11,15 @@ La aplicación se exporta como una SPA estática de Expo Router en la carpeta
 3. Copiar el contenido de `domcloud.yml` en el script de despliegue.
 4. Ejecutar el despliegue.
 
-La receta clona la rama predeterminada del repositorio, instala Node.js 20,
-ejecuta `npm ci` y compila con un solo proceso y sin JIT para ajustarse a la
-memoria disponible en DOM Cloud. Luego configura NGINX para servir `dist`.
+La receta clona la rama predeterminada del repositorio, comprueba que exista
+`dist/index.html` y configura NGINX para servir directamente `dist`.
 El fallback a `/index.html` permite abrir directamente las rutas de Expo
 Router sin errores 404.
 
 ## Actualizaciones
 
-Después de subir cambios a `main`, ejecutar nuevamente el despliegue desde el
-panel de DOM Cloud.
+Después de cambiar la aplicación, ejecutar `npm run build`, subir también los
+cambios generados en `dist` a `main` y desplegar nuevamente desde DOM Cloud.
 
 ## Verificación local
 
