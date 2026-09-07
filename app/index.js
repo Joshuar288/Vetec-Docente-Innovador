@@ -11,6 +11,24 @@ const SECTORES = {
     oscuro: '#176B33',
     fondo: '#ECF8EF',
     inicial: 'A',
+    herramientas: [
+      {
+        href: '/(tabs)/Caldosis',
+        badge: 'D',
+        title: 'Calculadora de dosis',
+        description: 'Calcula dosis de medicamentos de forma rápida.',
+        moduleName: 'Módulo veterinaria',
+        estado: 'Disponible',
+      },
+      {
+        href: '/(tabs)/Cuadropearson',
+        badge: 'P',
+        title: 'Cuadrado de Pearson',
+        description: 'Formula mezclas equilibradas de dos ingredientes.',
+        moduleName: 'Módulo Veterinaria',
+        estado: 'Disponible',
+      },
+    ],
   },
   comercio: {
     nombre: 'Sector Comercio',
@@ -19,6 +37,25 @@ const SECTORES = {
     oscuro: '#94154E',
     fondo: '#FDECF4',
     inicial: 'C',
+    herramientas: [
+      {
+        href: '/(comercio-tabs)/Kardex',
+        badge: 'K',
+        title: 'Tarjetas Kardex',
+        description: 'Control y seguimiento de entradas, salidas y existencias.',
+        moduleName: 'Módulo de comercio',
+        estado: 'Disponible',
+      },
+    ],
+  },
+  industria: {
+    nombre: 'Sector Industria y Construcción',
+    descripcion: 'Procesos industriales, tecnología y construcción',
+    color: '#1677B8',
+    oscuro: '#0B527F',
+    fondo: '#E8F4FB',
+    inicial: 'I',
+    herramientas: [],
   },
 };
 
@@ -84,29 +121,29 @@ export default function App() {
             </View>
           </View>
 
-          {sectorActivo === 'agropecuario' ? (
+          {sector.herramientas.length > 0 ? (
             <View style={styles.toolsGrid}>
-              <ToolLink href="/(tabs)/Caldosis" badge="D" title="Calculadora de dosis"
-                description="Calcula dosis de medicamentos de forma rápida." sector={sector} />
-              <ToolLink href="/(tabs)/Cuadropearson" badge="P" title="Cuadrado de Pearson"
-                description="Formula mezclas equilibradas de dos ingredientes." sector={sector} />
+              {sector.herramientas.map((herramienta) => (
+                herramienta.href ? (
+                  <ToolLink
+                    key={herramienta.title}
+                    {...herramienta}
+                    sector={sector}
+                  />
+                ) : (
+                  <ToolCard
+                    key={herramienta.title}
+                    {...herramienta}
+                    sector={sector}
+                  />
+                )
+              ))}
             </View>
           ) : (
-            <View style={styles.toolsGrid}>
-              <View style={[styles.toolCard, { borderColor: sector.color }]}>
-                <View style={[styles.toolBadge, { backgroundColor: sector.fondo }]}>
-                  <Text style={[styles.toolBadgeText, { color: sector.oscuro }]}>K</Text>
-                </View>
-                <View style={styles.toolContent}>
-                  <Text style={styles.toolTitle}>Tarjetas Kardex</Text>
-                  <Text style={styles.toolDescription}>
-                    Control y seguimiento de entradas, salidas y existencias.
-                  </Text>
-                  <View style={[styles.moduleBadge, { backgroundColor: sector.fondo }]}>
-                    <Text style={[styles.moduleText, { color: sector.oscuro }]}>Módulo de comercio</Text>
-                  </View>
-                </View>
-              </View>
+            <View style={[styles.emptyState, { backgroundColor: sector.fondo }]}>
+              <Text style={[styles.emptyInitial, { color: sector.oscuro }]}>{sector.inicial}</Text>
+              <Text style={styles.emptyTitle}>Próximamente</Text>
+              <Text style={styles.emptyText}>Las herramientas de este sector se agregarán aquí.</Text>
             </View>
           )}
         </View>
@@ -116,24 +153,45 @@ export default function App() {
   );
 }
 
-function ToolLink({ href, badge, title, description, sector }) {
+function ToolLink({ href, badge, title, description, moduleName, estado, sector }) {
   return (
     <Link href={href} asChild>
-      <Pressable accessibilityRole="link" style={({ pressed }) => [
-        styles.toolCard, { borderColor: sector.oscuro }, pressed && styles.pressed,
-      ]}>
-        <View style={[styles.toolBadge, { backgroundColor: sector.fondo }]}>
-          <Text style={[styles.toolBadgeText, { color: sector.oscuro }]}>{badge}</Text>
-        </View>
-        <View style={styles.toolContent}>
-          <Text style={styles.toolTitle}>{title}</Text>
-          <Text style={styles.toolDescription}>{description}</Text>
-          <View style={[styles.moduleBadge, { backgroundColor: sector.fondo }]}>
-            <Text style={[styles.moduleText, { color: sector.oscuro }]}>Módulo agropecuario</Text>
-          </View>
-        </View>
+      <Pressable accessibilityRole="link">
+        {({ pressed }) => (
+          <ToolCard
+            badge={badge}
+            title={title}
+            description={description}
+            moduleName={moduleName}
+            estado={estado}
+            sector={sector}
+            pressed={pressed}
+          />
+        )}
       </Pressable>
     </Link>
+  );
+}
+
+function ToolCard({ badge, title, description, moduleName, estado = 'Disponible', sector, pressed = false }) {
+  return (
+    <View style={[styles.toolCard, { borderColor: sector.oscuro }, pressed && styles.pressed]}>
+      <View style={[styles.toolBadge, { backgroundColor: sector.fondo }]}>
+        <Text style={[styles.toolBadgeText, { color: sector.oscuro }]}>{badge}</Text>
+      </View>
+      <View style={styles.toolContent}>
+        <Text style={styles.toolTitle}>{title}</Text>
+        <Text style={styles.toolDescription}>{description}</Text>
+        <View style={[styles.moduleBadge, { backgroundColor: sector.fondo }]}>
+          <Text style={[styles.moduleText, { color: sector.oscuro }]}>{moduleName}</Text>
+        </View>
+        {estado !== 'Disponible' && (
+          <View style={styles.statusBadge}>
+            <Text style={styles.statusText}>{estado}</Text>
+          </View>
+        )}
+      </View>
+    </View>
   );
 }
 
@@ -176,5 +234,11 @@ const styles = StyleSheet.create({
   toolDescription: { color: '#667B8B', fontSize: 12, lineHeight: 17, marginTop: 3 },
   moduleBadge: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999, marginTop: 9 },
   moduleText: { fontSize: 11, fontWeight: '800' },
+  statusBadge: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 999, marginTop: 7, backgroundColor: '#FFF4D6' },
+  statusText: { color: '#8A5A00', fontSize: 11, fontWeight: '800' },
+  emptyState: { minHeight: 150, padding: 20, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  emptyInitial: { fontSize: 30, fontWeight: '900' },
+  emptyTitle: { color: '#203D54', fontSize: 16, fontWeight: '800', marginTop: 4 },
+  emptyText: { color: '#667B8B', fontSize: 12, lineHeight: 17, marginTop: 3, textAlign: 'center' },
   pressed: { opacity: 0.78, transform: [{ scale: 0.99 }] },
 });
