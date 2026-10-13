@@ -1,12 +1,20 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Pressable, ScrollView, Modal, FlatList } from "react-native";
+import { Alert, Animated, View, Text, StyleSheet, TextInput, TouchableOpacity, Pressable, ScrollView, Modal, FlatList } from "react-native";
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect } from "react";
 import { useWindowDimensions } from "react-native";
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useIsFocused } from '@react-navigation/native';
 import AnimatedLogoBackground from '../../components/AnimatedLogoBackground';
+import ToolGuide from '../../components/ToolGuide';
+import InteractionCoach from '../../components/InteractionCoach';
+import useGuidePulse from '../../components/useGuidePulse';
+import RecordActions from '../../components/RecordActions';
+import { printRecord } from '../../utils/printRecord';
+import MainMenuButton from '../../components/MainMenuButton';
 
-function SelectorIngrediente({ items, selectedId, onSelect, placeholder }) {
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+
+function SelectorIngrediente({ items, selectedId, onSelect, placeholder, highlighted }) {
   const [visible, setVisible] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   const seleccionado = items.find((item) => item.id === selectedId);
@@ -14,6 +22,7 @@ function SelectorIngrediente({ items, selectedId, onSelect, placeholder }) {
   const resultados = termino
     ? items.filter((item) => item.label.toLocaleLowerCase('es').includes(termino))
     : items;
+  const pulseStyle = useGuidePulse(highlighted);
 
   const cerrar = () => {
     setVisible(false);
@@ -22,8 +31,9 @@ function SelectorIngrediente({ items, selectedId, onSelect, placeholder }) {
 
   return (
     <>
-      <TouchableOpacity
-        style={selectorStyles.control}
+      {highlighted && <Text style={selectorStyles.guidedLabel}>↓ PRESIONA ESTE SELECTOR</Text>}
+      <AnimatedTouchableOpacity
+        style={[selectorStyles.control, highlighted && selectorStyles.controlGuided, highlighted && pulseStyle]}
         onPress={() => setVisible(true)}
         accessibilityRole="button"
         accessibilityLabel={placeholder}
@@ -32,7 +42,7 @@ function SelectorIngrediente({ items, selectedId, onSelect, placeholder }) {
           {seleccionado?.label || placeholder}
         </Text>
         <Text style={selectorStyles.arrow}>▼</Text>
-      </TouchableOpacity>
+      </AnimatedTouchableOpacity>
 
       <Modal visible={visible} transparent animationType="fade" onRequestClose={cerrar}>
         <View style={selectorStyles.backdrop}>
@@ -91,6 +101,8 @@ const selectorStyles = StyleSheet.create({
     alignItems: 'center',
   },
   controlText: { flex: 1, color: '#111827', fontSize: 12 },
+  guidedLabel: { color: '#166534', fontSize: 9, fontWeight: '900', letterSpacing: 0.6 },
+  controlGuided: { borderWidth: 3, borderColor: '#16A34A', backgroundColor: '#F0FDF4' },
   arrow: { color: '#166534', fontSize: 12, marginLeft: 6 },
   backdrop: {
     flex: 1,
@@ -132,12 +144,15 @@ function ContenidoPearson({
   proteico, nutreico, valDeseado, setValDeseado, soloNumeros,
   parteProteico, parteNutreico, proporcionProteico, proporcionNutreico,
   ingredienteProteico, ingredienteNutreico, librasProteico, librasNutreico,
+  guideTarget,
 }) {
   const { width } = useWindowDimensions();
   const compact = width < 700;
   const s = responsiveStyles;
   const totalCantidad = (parseFloat(proporcionNutreico) + parseFloat(proporcionProteico)).toFixed(2);
   const totalProteina = (parseFloat(librasNutreico) + parseFloat(librasProteico)).toFixed(2);
+  const desiredPulseStyle = useGuidePulse(guideTarget === 'deseado');
+  const resultsPulseStyle = useGuidePulse(guideTarget === 'results');
 
   const bloqueResultado = (nombre, cantidad, proteina) => (
     <View style={[s.sourceResult, compact && s.sourceResultCompact]}>
@@ -163,11 +178,11 @@ function ContenidoPearson({
         <View style={[s.selectors, compact && s.stack]}>
           <View style={s.selectorColumn}>
             <Text style={s.label}>Fuente proteica</Text>
-            <SelectorIngrediente items={ingredientesProteicos} selectedId={idProteico} onSelect={seleccionarIngredienteProteico} placeholder="Ingrediente proteico" />
+            <SelectorIngrediente items={ingredientesProteicos} selectedId={idProteico} onSelect={seleccionarIngredienteProteico} placeholder="Ingrediente proteico" highlighted={guideTarget === 'proteico'} />
           </View>
           <View style={s.selectorColumn}>
             <Text style={s.label}>Fuente energética</Text>
-            <SelectorIngrediente items={ingredientesNutreicos} selectedId={idNutreico} onSelect={seleccionarIngredienteNutreico} placeholder="Ingrediente energético" />
+            <SelectorIngrediente items={ingredientesNutreicos} selectedId={idNutreico} onSelect={seleccionarIngredienteNutreico} placeholder="Ingrediente energético" highlighted={guideTarget === 'nutreico'} />
           </View>
         </View>
 
@@ -176,10 +191,11 @@ function ContenidoPearson({
             <Text style={s.metricTitle}>Proteína bruta</Text>
             <Text style={s.metricValue}>{proteico}%</Text><View style={s.divider} /><Text style={s.metricValue}>{nutreico}%</Text>
           </View>
-          <View style={s.metricCard}>
+          <Animated.View style={[s.metricCard, guideTarget === 'deseado' && s.metricCardGuided, guideTarget === 'deseado' && desiredPulseStyle]}>
+            {guideTarget === 'deseado' && <Text style={s.guidedLabel}>↓ ESCRIBE AQUÍ</Text>}
             <Text style={s.metricTitle}>Concentración deseada</Text>
             <TextInput keyboardType="numeric" value={String(valDeseado)} onChangeText={(text) => soloNumeros(text, setValDeseado)} style={s.input} placeholder="0" placeholderTextColor="#6B7280" selectTextOnFocus />
-          </View>
+          </Animated.View>
           <View style={s.metricCard}>
             <Text style={s.metricTitle}>Partes</Text>
             <Text style={s.metricValue}>{parteProteico || '0.00'}</Text><View style={s.divider} /><Text style={s.metricValue}>{parteNutreico || '0.00'}</Text>
@@ -191,7 +207,8 @@ function ContenidoPearson({
         </View>
       </View>
 
-      <View style={s.card}>
+      <Animated.View style={[s.card, guideTarget === 'results' && s.resultsGuided, guideTarget === 'results' && resultsPulseStyle]}>
+        {guideTarget === 'results' && <Text style={s.resultGuideLabel}>RESULTADO: REVISA ESTOS VALORES</Text>}
         <Text style={s.resultsTitle}>Resultados por cada 100 lb</Text>
         <View style={[s.results, compact && s.stack]}>
           {bloqueResultado(ingredienteProteico, proporcionProteico, librasProteico)}
@@ -202,7 +219,7 @@ function ContenidoPearson({
           <Text style={s.totalValue}>{totalCantidad} lb</Text>
           <Text style={s.totalValue}>{totalProteina}% de proteína</Text>
         </View>
-      </View>
+      </Animated.View>
     </>
   );
 }
@@ -217,6 +234,8 @@ const responsiveStyles = StyleSheet.create({
   label: { color: '#1F2937', fontSize: 13, fontWeight: '600' },
   metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   metricCard: { flexGrow: 1, flexBasis: 115, minWidth: 105, minHeight: 112, padding: 8, justifyContent: 'space-around', alignItems: 'center', borderWidth: 1, borderColor: '#BBF7D0', borderRadius: 9, backgroundColor: '#F0FDF4' },
+  metricCardGuided: { borderWidth: 3, borderColor: '#16A34A' },
+  guidedLabel: { color: '#166534', fontSize: 9, fontWeight: '900', letterSpacing: 0.5, textAlign: 'center' },
   metricTitle: { minHeight: 30, color: '#374151', fontSize: 12, fontWeight: '600', textAlign: 'center' },
   metricValue: { color: '#111827', fontSize: 17, fontWeight: 'bold', textAlign: 'center' },
   divider: { width: '75%', height: 1, backgroundColor: '#D1D5DB' },
@@ -230,6 +249,8 @@ const responsiveStyles = StyleSheet.create({
   resultMetric: { flex: 1, alignItems: 'center', gap: 4 },
   resultLabel: { color: '#6B7280', fontSize: 13 },
   resultValue: { color: '#166534', fontSize: 16, fontWeight: 'bold' },
+  resultsGuided: { borderWidth: 3, borderColor: '#16A34A' },
+  resultGuideLabel: { color: '#166534', fontSize: 9, fontWeight: '900', letterSpacing: 0.6, textAlign: 'center' },
   total: { minHeight: 46, paddingHorizontal: 12, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', borderRadius: 9, backgroundColor: '#166534', gap: 8 },
   totalCompact: { flexWrap: 'wrap', paddingVertical: 10 },
   totalLabel: { color: '#FFFFFF', fontSize: 17, fontWeight: 'bold' },
@@ -243,10 +264,13 @@ function VistaCuadradoPearson(props) {
     proteico, nutreico, valDeseado, setValDeseado, soloNumeros,
     parteProteico, parteNutreico, proporcionProteico, proporcionNutreico,
     ingredienteProteico, ingredienteNutreico, librasProteico, librasNutreico,
+    guideTarget,
   } = props;
   const { width } = useWindowDimensions();
   const compact = width < 700;
   const s = classicStyles;
+  const desiredPulseStyle = useGuidePulse(guideTarget === 'deseado');
+  const resultsPulseStyle = useGuidePulse(guideTarget === 'results');
 
   return (
     <>
@@ -257,11 +281,11 @@ function VistaCuadradoPearson(props) {
         <View style={[s.selectors, compact && s.selectorsCompact]}>
           <View style={s.selectorColumn}>
             <Text style={s.selectorLabel}>1 · Fuente proteica</Text>
-            <SelectorIngrediente items={ingredientesProteicos} selectedId={idProteico} onSelect={seleccionarIngredienteProteico} placeholder="Ingrediente proteico" />
+            <SelectorIngrediente items={ingredientesProteicos} selectedId={idProteico} onSelect={seleccionarIngredienteProteico} placeholder="Ingrediente proteico" highlighted={guideTarget === 'proteico'} />
           </View>
           <View style={s.selectorColumn}>
             <Text style={s.selectorLabel}>2 · Fuente energética</Text>
-            <SelectorIngrediente items={ingredientesNutreicos} selectedId={idNutreico} onSelect={seleccionarIngredienteNutreico} placeholder="Ingrediente energético" />
+            <SelectorIngrediente items={ingredientesNutreicos} selectedId={idNutreico} onSelect={seleccionarIngredienteNutreico} placeholder="Ingrediente energético" highlighted={guideTarget === 'nutreico'} />
           </View>
         </View>
 
@@ -278,11 +302,12 @@ function VistaCuadradoPearson(props) {
           <View style={[s.valueNode, s.topLeft]}><Text style={s.nodeValue}>{proteico}%</Text><Text style={s.nodeCaption}>Proteica</Text></View>
           <View style={[s.valueNode, s.bottomLeft]}><Text style={s.nodeValue}>{nutreico}%</Text><Text style={s.nodeCaption}>Energética</Text></View>
 
-          <View style={s.centerNode}>
+          <Animated.View style={[s.centerNode, guideTarget === 'deseado' && s.centerNodeGuided, guideTarget === 'deseado' && desiredPulseStyle]}>
+            {guideTarget === 'deseado' && <Text style={s.centerGuide}>ESCRIBE AQUÍ</Text>}
             <Text style={s.centerLabel}>Deseada</Text>
             <TextInput keyboardType="numeric" value={String(valDeseado)} onChangeText={(text) => soloNumeros(text, setValDeseado)} style={s.centerInput} placeholder="0" placeholderTextColor="#86A48F" selectTextOnFocus />
             <Text style={s.percent}>%</Text>
-          </View>
+          </Animated.View>
 
           <View style={[s.valueNode, s.topRight]}><Text style={s.nodeValue}>{parteProteico || '0.00'}</Text><Text style={s.nodeCaption}>partes</Text></View>
           <View style={[s.valueNode, s.bottomRight]}><Text style={s.nodeValue}>{parteNutreico || '0.00'}</Text><Text style={s.nodeCaption}>partes</Text></View>
@@ -294,14 +319,15 @@ function VistaCuadradoPearson(props) {
         </View>
       </View>
 
-      <View style={s.resultsCard}>
+      <Animated.View style={[s.resultsCard, guideTarget === 'results' && s.resultsCardGuided, guideTarget === 'results' && resultsPulseStyle]}>
+        {guideTarget === 'results' && <Text style={s.resultGuideLabel}>RESULTADO: REVISA ESTOS VALORES</Text>}
         <Text style={s.resultsTitle}>Mezcla por cada 100 lb</Text>
         <View style={[s.resultRow, compact && s.resultRowCompact]}>
           <View style={s.resultSource}><Text style={s.resultName} numberOfLines={2}>{ingredienteProteico}</Text><Text style={s.resultAmount}>{proporcionProteico} lb</Text><Text style={s.resultProtein}>{librasProteico}% de proteína</Text></View>
           <View style={s.resultSeparator} />
           <View style={s.resultSource}><Text style={s.resultName} numberOfLines={2}>{ingredienteNutreico}</Text><Text style={s.resultAmount}>{proporcionNutreico} lb</Text><Text style={s.resultProtein}>{librasNutreico}% de proteína</Text></View>
         </View>
-      </View>
+      </Animated.View>
     </>
   );
 }
@@ -329,6 +355,8 @@ const classicStyles = StyleSheet.create({
   nodeValue: { color: '#14532D', fontSize: 17, fontWeight: 'bold' },
   nodeCaption: { color: '#6B7280', fontSize: 10, textAlign: 'center' },
   centerNode: { position: 'absolute', left: '39%', top: 46, width: '22%', minHeight: 92, zIndex: 3, padding: 5, justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: '#166534', borderRadius: 46, backgroundColor: '#FFFFFF', elevation: 5 },
+  centerNodeGuided: { borderWidth: 5, borderColor: '#22C55E', backgroundColor: '#F0FDF4' },
+  centerGuide: { color: '#166534', fontSize: 7, fontWeight: '900', letterSpacing: 0.3, textAlign: 'center' },
   centerLabel: { color: '#166534', fontSize: 9, fontWeight: '700', textTransform: 'uppercase' },
   centerInput: { width: '70%', minHeight: 38, padding: 0, color: '#111827', fontSize: 21, fontWeight: 'bold', textAlign: 'center' },
   percent: { position: 'absolute', right: 8, bottom: 23, color: '#166534', fontSize: 12, fontWeight: 'bold' },
@@ -337,6 +365,8 @@ const classicStyles = StyleSheet.create({
   proportionName: { flex: 1, color: '#DCFCE7', fontSize: 11, fontWeight: '600' },
   proportionValue: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
   resultsCard: { width: '100%', maxWidth: 1000, padding: 11, borderRadius: 12, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#D1D5DB', elevation: 3 },
+  resultsCardGuided: { borderWidth: 3, borderColor: '#16A34A' },
+  resultGuideLabel: { marginBottom: 5, color: '#166534', fontSize: 9, fontWeight: '900', letterSpacing: 0.6, textAlign: 'center' },
   resultsTitle: { marginBottom: 7, color: '#14532D', fontSize: 16, fontWeight: 'bold', textAlign: 'center' },
   resultRow: { flexDirection: 'row', alignItems: 'stretch' },
   resultRowCompact: { flexDirection: 'column', gap: 10 },
@@ -358,9 +388,14 @@ export default function CalcularDosis() {
   const [proporcionProteico, setProporcionProteico] = useState('Sin Calcular ');
   const [proporcionNutreico, setProporcionNutreico] = useState('Sin Calcular ');
   const isFocused = useIsFocused();
-  const [idProteico, setIdProteico] = useState(0);
-  const [idNutreico, setIdNutreico] = useState(0);
+  const [idProteico, setIdProteico] = useState(null);
+  const [idNutreico, setIdNutreico] = useState(null);
   const [vista, setVista] = useState('cuadrado');
+  const [coach, setCoach] = useState({
+    label: 'COMIENZA AQUÍ',
+    message: 'Presiona primero el selector de ingrediente proteico. La ayuda te acompañará durante cada elección.',
+  });
+  const [guideTarget, setGuideTarget] = useState('proteico');
   const [ingredienteProteico, setIngredienteProteico] = useState('Sin ingrediente seleccionado');
   const [ingredienteNutreico, setIngredienteNutreico] = useState('Sin ingrediente seleccionado');
   const [librasProteico, setLibrasProteico] = useState('Sin Calcular');
@@ -549,6 +584,11 @@ const ingredientesNutreicos = [
   const soloNumeros = (text, enviovariable) =>{
     const remplazanumero = text.replace(/[^0-9]/g, '');
       enviovariable(remplazanumero);
+      setCoach({
+        label: 'CONCENTRACIÓN DESEADA',
+        message: 'Este porcentaje debe quedar entre el valor del ingrediente proteico y el energético. Los resultados se actualizan automáticamente.',
+      });
+      if (remplazanumero) setGuideTarget('results');
     }
 
   useEffect(() => {
@@ -582,6 +622,11 @@ const ingredientesNutreicos = [
 
     if (ingredienteSeleccionado) {
       setNutreico(ingredienteSeleccionado.value); 
+      setCoach({
+        label: 'FUENTE ENERGÉTICA SELECCIONADA',
+        message: 'Ahora presiona el valor central e introduce el porcentaje de proteína que quieres lograr en la mezcla.',
+      });
+      setGuideTarget('deseado');
     }
   };
 
@@ -594,6 +639,11 @@ const ingredientesNutreicos = [
 
     if (ingredienteSeleccionado) {
       setProteico(ingredienteSeleccionado.value); 
+      setCoach({
+        label: 'FUENTE PROTEICA SELECCIONADA',
+        message: 'Continúa con el selector de ingrediente energético. Conviene elegir uno con un porcentaje menor al objetivo.',
+      });
+      setGuideTarget('nutreico');
     }
   };
 
@@ -646,6 +696,51 @@ const ingredientesNutreicos = [
     setIngredienteNutreico(ingredientesNutreicos.find(item => item.id === idNutreico)?.label || '');
   };
 
+  const limpiarFormulario = () => {
+    setProteico(0);
+    setNutreico(0);
+    setValDeseado(0);
+    setParteProteico('');
+    setParteNutreico('');
+    setProporcionProteico('0.00');
+    setProporcionNutreico('0.00');
+    setIdProteico(null);
+    setIdNutreico(null);
+    setIngredienteProteico('Sin ingrediente seleccionado');
+    setIngredienteNutreico('Sin ingrediente seleccionado');
+    setLibrasProteico('0.00');
+    setLibrasNutreico('0.00');
+    setGuideTarget('proteico');
+    setCoach({
+      label: 'ACTIVIDAD LIMPIA',
+      message: 'Presiona el selector de ingrediente proteico para construir una nueva mezcla.',
+    });
+  };
+
+  const registroCompleto = idProteico !== null && idNutreico !== null && Number(valDeseado) > 0;
+
+  const imprimirRegistro = async () => {
+    if (!registroCompleto) return;
+    try {
+      await printRecord({
+        title: 'Registro del cuadrado de Pearson',
+        subtitle: 'Mezcla calculada por cada 100 lb',
+        rows: [
+          { label: 'Fuente proteica', value: `${ingredienteProteico} · ${proteico}% PB` },
+          { label: 'Fuente energética', value: `${ingredienteNutreico} · ${nutreico}% PB` },
+          { label: 'Concentración deseada', value: `${valDeseado}%` },
+        ],
+        results: [
+          { label: `Cantidad de ${ingredienteProteico}`, value: `${proporcionProteico} lb` },
+          { label: `Cantidad de ${ingredienteNutreico}`, value: `${proporcionNutreico} lb` },
+          { label: 'Aporte proteico total', value: `${(Number(librasProteico) + Number(librasNutreico)).toFixed(2)}%` },
+        ],
+      });
+    } catch (error) {
+      Alert.alert('No se pudo imprimir', error.message || 'Inténtalo nuevamente.');
+    }
+  };
+
 return (
     <View style={{ flex: 1 }}>
       {/* Fondo de pantalla fijo - Fuera del ScrollView */}
@@ -658,10 +753,26 @@ return (
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        <MainMenuButton />
+        <ToolGuide
+          title="Cómo construir el cuadrado de Pearson"
+          whatIs="El cuadrado de Pearson es un método gráfico para calcular la proporción de dos ingredientes con concentraciones diferentes y obtener una mezcla con un porcentaje de proteína deseado."
+          logic="El valor deseado debe quedar entre los porcentajes de ambos ingredientes. Se resta diagonalmente: ingrediente alto menos valor deseado y valor deseado menos ingrediente bajo. Las diferencias obtenidas son las partes de cada fuente; al convertirlas a porcentaje, ambas proporciones suman 100 %."
+          steps={[
+            'Presiona el selector de fuente proteica y elige un ingrediente con porcentaje mayor al valor que deseas obtener.',
+            'Presiona el selector de fuente energética y elige un ingrediente con porcentaje menor al valor deseado.',
+            'Toca el campo central e introduce la concentración de proteína que debe tener la mezcla final.',
+            'Lee las partes calculadas a la derecha y revisa abajo cuántas libras de cada ingrediente usar por cada 100 lb.',
+          ]}
+          tip="Puedes cambiar entre “Vista cuadrado” y “Vista tarjetas”. Los datos y resultados son los mismos; solo cambia la manera de representarlos."
+        />
+
+        <InteractionCoach cue={coach} />
+
         <View style={styles.viewSwitcher} accessibilityRole="tablist">
           <Pressable
             style={[styles.viewButton, vista === 'cuadrado' && styles.viewButtonActive]}
-            onPress={() => setVista('cuadrado')}
+            onPress={() => { setVista('cuadrado'); setCoach({ label: 'VISTA CUADRADO', message: 'En esta vista, sigue las líneas diagonales: cada resta produce las partes que aparecen en el lado opuesto.' }); }}
             accessibilityRole="tab"
             accessibilityState={{ selected: vista === 'cuadrado' }}
           >
@@ -669,7 +780,7 @@ return (
           </Pressable>
           <Pressable
             style={[styles.viewButton, vista === 'tarjetas' && styles.viewButtonActive]}
-            onPress={() => setVista('tarjetas')}
+            onPress={() => { setVista('tarjetas'); setCoach({ label: 'VISTA TARJETAS', message: 'Esta vista presenta los mismos cálculos en bloques ordenados. Puedes completar o revisar los datos con mayor detalle.' }); }}
             accessibilityRole="tab"
             accessibilityState={{ selected: vista === 'tarjetas' }}
           >
@@ -697,6 +808,7 @@ return (
           ingredienteNutreico={ingredienteNutreico}
           librasProteico={librasProteico}
           librasNutreico={librasNutreico}
+          guideTarget={guideTarget}
         />}
 
         {vista === 'tarjetas' && <ContenidoPearson
@@ -719,7 +831,11 @@ return (
           ingredienteNutreico={ingredienteNutreico}
           librasProteico={librasProteico}
           librasNutreico={librasNutreico}
+          guideTarget={guideTarget}
         />}
+        <View style={styles.recordActions}>
+          <RecordActions onClear={limpiarFormulario} onPrint={imprimirRegistro} canPrint={registroCompleto} />
+        </View>
         <StatusBar style="light" />
       </ScrollView>
     </View>
@@ -779,6 +895,11 @@ const CreateStyles = (width) => {
 
     viewButtonTextActive: {
       color: '#FFFFFF',
+    },
+
+    recordActions: {
+      width: '100%',
+      maxWidth: 1000,
     },
 
   });
