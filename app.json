@@ -30,7 +30,8 @@
       "output": "single"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-web-browser"
     ],
     "extra": {
       "router": {},
