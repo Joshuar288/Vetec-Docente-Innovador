@@ -1,5 +1,6 @@
-import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import HelpDialog from './HelpDialog';
+import { useGuidedTour } from './GuidedTour';
 
 export default function ToolGuide({
   title = 'Guía de la actividad',
@@ -10,30 +11,13 @@ export default function ToolGuide({
   accent = '#166534',
   soft = '#F0FDF4',
 }) {
-  const [open, setOpen] = useState(false);
   const { width } = useWindowDimensions();
   const wide = width >= 720;
+  const tour = useGuidedTour();
+  if (tour) return <Pressable onPress={() => tour.start()} accessibilityRole="button" accessibilityLabel="Iniciar guía paso a paso" style={{ minHeight:40, paddingHorizontal:12, paddingVertical:10, borderWidth:1, borderColor:accent, borderRadius:20, backgroundColor:soft, alignSelf:'flex-start' }}><Text style={{color:accent,fontWeight:'700',fontSize:12}}>? Guía paso a paso</Text></Pressable>;
 
   return (
-    <View style={[styles.container, { borderColor: accent }]}>
-      <Pressable
-        onPress={() => setOpen((current) => !current)}
-        accessibilityRole="button"
-        accessibilityState={{ expanded: open }}
-        style={({ pressed }) => [styles.header, { backgroundColor: soft }, pressed && styles.pressed]}
-      >
-        <View style={[styles.helpIcon, { backgroundColor: accent }]}>
-          <Text style={styles.helpIconText}>?</Text>
-        </View>
-        <View style={styles.headerCopy}>
-          <Text style={[styles.eyebrow, { color: accent }]}>APRENDE MIENTRAS PRACTICAS</Text>
-          <Text style={styles.title}>{title}</Text>
-        </View>
-        <Text style={[styles.toggle, { color: accent }]}>{open ? 'Ocultar −' : 'Ver guía +'}</Text>
-      </Pressable>
-
-      {open && (
-        <View style={styles.body}>
+    <HelpDialog label="Ver guía" title={title} accent={accent} soft={soft}>
           <GuideSection title="¿Qué es esta herramienta?" text={whatIs} accent={accent} />
           <GuideSection title="¿Cuál es la lógica?" text={logic} accent={accent} highlighted soft={soft} />
 
@@ -57,9 +41,7 @@ export default function ToolGuide({
               <Text style={styles.tipText}>{tip}</Text>
             </View>
           ) : null}
-        </View>
-      )}
-    </View>
+    </HelpDialog>
   );
 }
 
@@ -76,15 +58,6 @@ function GuideSection({ title, text, accent, highlighted = false, soft }) {
 }
 
 const styles = StyleSheet.create({
-  container: { width: '100%', overflow: 'hidden', borderWidth: 1.5, borderRadius: 16, backgroundColor: '#FFFFFF', elevation: 3, boxShadow: '0px 4px 14px rgba(15, 23, 42, 0.09)' },
-  header: { minHeight: 68, paddingHorizontal: 13, paddingVertical: 10, flexDirection: 'row', alignItems: 'center' },
-  helpIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-  helpIconText: { color: '#FFFFFF', fontSize: 20, fontWeight: '900' },
-  headerCopy: { flex: 1 },
-  eyebrow: { fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
-  title: { color: '#172033', fontSize: 16, fontWeight: '800', marginTop: 1 },
-  toggle: { marginLeft: 8, fontSize: 11, fontWeight: '800' },
-  body: { padding: 13, gap: 12 },
   section: { padding: 11, flexDirection: 'row', borderRadius: 11 },
   sectionBar: { width: 4, borderRadius: 2, marginRight: 9 },
   sectionCopy: { flex: 1 },
@@ -101,5 +74,4 @@ const styles = StyleSheet.create({
   tip: { padding: 11, borderRadius: 11 },
   tipLabel: { fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
   tipText: { color: '#4B5B6D', fontSize: 12, lineHeight: 17, marginTop: 2 },
-  pressed: { opacity: 0.78 },
 });

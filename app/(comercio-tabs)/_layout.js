@@ -1,14 +1,13 @@
 import { Tabs } from 'expo-router';
-import { Platform, Text } from 'react-native';
+import { Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ComercioTabsLayout() {
   return (
+    <SafeAreaView style={{ flex: 1 }} edges={['top']}>
     <Tabs
       screenOptions={{
-        headerShown: Platform.OS !== 'android',
-        headerStyle: { backgroundColor: '#FFF7FB' },
-        headerTintColor: '#94154E',
-        headerTitleStyle: { fontWeight: '700' },
+        headerShown: false,
         tabBarActiveTintColor: '#D62476',
         tabBarInactiveTintColor: '#718096',
         tabBarStyle: {
@@ -21,7 +20,6 @@ export default function ComercioTabsLayout() {
         name="Kardex"
         options={{
           title: 'Tarjetas Kardex',
-          headerTitle: 'Gestión de Tarjetas Kardex',
           tabBarLabel: 'Kardex',
           tabBarIcon: ({ color }) => (
             <Text style={{ color, fontSize: 18, fontWeight: '900' }}>K</Text>
@@ -29,5 +27,6 @@ export default function ComercioTabsLayout() {
         }}
       />
     </Tabs>
+    </SafeAreaView>
   );
 }

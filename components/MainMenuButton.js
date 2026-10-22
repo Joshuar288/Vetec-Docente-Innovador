@@ -1,38 +1,45 @@
-import { Link } from 'expo-router';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { TourTarget } from './GuidedTour';
 
 export default function MainMenuButton({ accent = '#166534', soft = '#F0FDF4' }) {
+  const router = useRouter();
   return (
-    <Link href="/" replace asChild>
+    <TourTarget id="inicio" style={{ alignSelf: 'flex-start' }}>
       <Pressable
+        onPress={() => router.replace('/')}
         accessibilityRole="button"
         accessibilityLabel="Volver al menú principal"
         style={({ pressed }) => [
           styles.button,
-          { borderColor: accent, backgroundColor: soft },
+          { backgroundColor: accent },
           pressed && styles.pressed,
         ]}
       >
-        <Text style={[styles.arrow, { color: accent }]}>←</Text>
-        <Text style={[styles.text, { color: accent }]}>Menú principal</Text>
+        <View style={[styles.icon, { backgroundColor: soft }]}><Text style={[styles.arrow, { color: accent }]}>←</Text></View>
+        <Text style={styles.text}>Volver al inicio</Text>
       </Pressable>
-    </Link>
+    </TourTarget>
   );
 }
 
 const styles = StyleSheet.create({
   button: {
-    minHeight: 42,
-    paddingHorizontal: 13,
+    minHeight: 52,
+    minWidth: 180,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
     borderRadius: 12,
-    gap: 7,
+    gap: 10,
+    elevation: 3,
+    boxShadow: '0px 3px 8px rgba(15, 23, 42, 0.16)',
   },
-  arrow: { fontSize: 20, lineHeight: 21, fontWeight: '700' },
-  text: { fontSize: 13, fontWeight: '800' },
+  icon: { width: 32, height: 32, borderRadius: 9, justifyContent: 'center', alignItems: 'center' },
+  arrow: { fontSize: 24, lineHeight: 28, fontWeight: '800' },
+  text: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
   pressed: { opacity: 0.7, transform: [{ scale: 0.98 }] },
 });

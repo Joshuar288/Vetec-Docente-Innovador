@@ -1,3 +1,9 @@
+import GuidedTour, { TourTarget, TourScrollView, TourPreview, TourScope } from '../../components/GuidedTour';
+import { kardexTour } from '../../utils/toolTours';
+import LearningGuide from '../../components/LearningGuide';
+import { kardexLessons } from '../../utils/toolLessons';
+import ToolWorkspace from '../../components/ToolWorkspace';
+import HelpDialog from '../../components/HelpDialog';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useRef, useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
@@ -7,7 +13,7 @@ import ToolGuide from '../../components/ToolGuide';
 import InteractionCoach from '../../components/InteractionCoach';
 import MainMenuButton from '../../components/MainMenuButton';
 import RecordActions from '../../components/RecordActions';
-import { printRecord } from '../../utils/printRecord';
+import { saveAndPrintRecord } from '../../utils/saveAndPrintRecord';
 import KardexPeps from '../../components/KardexPeps';
 
 const ACCENT = '#D62476';
@@ -108,9 +114,7 @@ export default function Kardex() {
     setCoach({ label: 'TARJETA LIMPIA', message: 'Escribe los datos del producto para comenzar una nueva tarjeta Kardex.' });
   };
 
-  const imprimir = async () => {
-    try {
-      await printRecord({
+  const record = movimientos.length > 0 ? {
         title: 'Tarjeta Kardex · Costo promedio',
         subtitle: `${producto} (${codigo})`,
         rows: [
@@ -127,17 +131,13 @@ export default function Kardex() {
           { label: 'Costo promedio final', value: money(saldo.costoPromedio) },
           { label: 'Valor final del inventario', value: money(saldo.valor) },
         ],
-      });
-    } catch (error) {
-      Alert.alert('No se pudo imprimir', error.message || 'Inténtalo nuevamente.');
-    }
-  };
-
+      } : null;
+  const imprimir = async (options) => { if (record) await saveAndPrintRecord(record, options); };
   return (
-    <View style={styles.screen}>
+    <GuidedTour title="Tarjetas Kardex" steps={kardexTour(method)} currentId={`${method}.movimiento`} accent={DARK}><View style={styles.screen}>
       <BlurTargetView ref={blurTargetRef} style={styles.blurTarget}>
         <AnimatedLogoBackground count={26} backgroundColor="#FFF7FB" />
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <TourScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <MainMenuButton accent={ACCENT} soft={SOFT} />
         <View style={styles.hero}>
           <View style={styles.heroBadge}><Text style={styles.heroBadgeText}>K</Text></View>
@@ -148,12 +148,15 @@ export default function Kardex() {
           </View>
         </View>
 
+        <View style={{ flexDirection:'row', flexWrap:'wrap', gap:8 }}>
         <ToolGuide title="¿Qué es una tarjeta Kardex?"
           whatIs="Es un registro cronológico que permite controlar cuánto producto entra, cuánto sale, cuánto queda disponible y cuál es el valor monetario del inventario."
           logic="Todos los métodos registran los mismos movimientos, pero asignan el costo de las salidas de manera diferente: promedio mezcla los costos; PEPS usa primero los lotes más antiguos; UEPS usa primero los más recientes."
           steps={['Selecciona arriba el método que deseas practicar.', 'Identifica el producto y registra su inventario inicial.', 'Agrega las compras como entradas y las ventas o entregas como salidas.', 'Revisa cómo el método elegido determina el costo de salida y el saldo.']}
           tip="Trabaja cada método por separado para comparar cómo cambia el valor del inventario aun usando los mismos movimientos."
           accent={ACCENT} soft={SOFT} />
+        <LearningGuide previewKind={method} lesson={kardexLessons[method]} targets={[`${method}.movimiento`, [`${method}.movimiento`,`${method}.movimiento`,`${method}.resumen`,`${method}.tabla`], `${method}.tabla`, `${method}.resumen`, [`${method}.movimiento`,`${method}.tabla`,`${method}.tabla`,`${method}.resumen`]]} accent={DARK} soft={SOFT} />
+        </View>
 
         <View style={styles.methodSwitcher} accessibilityRole="tablist">
           <MethodButton label="Costo promedio" active={method === 'promedio'} onPress={() => setMethod('promedio')} />
@@ -161,20 +164,21 @@ export default function Kardex() {
           <MethodButton label="UEPS" active={method === 'ueps'} onPress={() => setMethod('ueps')} />
         </View>
 
-        <View style={[styles.methodContent, method !== 'promedio' && styles.hidden]}>
+        <TourScope prefix="promedio"><View style={[styles.methodContent, method !== 'promedio' && styles.hidden]}>
         <View style={styles.methodIntro}><Text style={styles.methodIntroTitle}>Costo promedio ponderado</Text><Text style={styles.methodIntroText}>Combina el valor de las unidades anteriores y nuevas para obtener un único costo promedio después de cada entrada.</Text></View>
         <InteractionCoach cue={coach} accent={ACCENT} soft={SOFT} />
 
-        <View style={styles.card}>
+        <TourPreview values={{ producto, codigo, unidad, tipo, fecha, detalle, cantidad, costoUnitario, movimientos, saldo, hasInitialInventory }}>{({ producto, codigo, unidad, tipo, fecha, detalle, cantidad, costoUnitario, movimientos, saldo, hasInitialInventory }) => <ToolWorkspace input={<>
+<TourTarget id="producto" style={styles.card}>
           <SectionTitle number="1" title="Identificación del producto" />
           <View style={[styles.fieldsRow, compact && styles.fieldsColumn]}>
             <Field label="Producto" value={producto} onChangeText={setProducto} placeholder="Ej. Cuaderno universitario" />
             <Field label="Código" value={codigo} onChangeText={setCodigo} placeholder="Ej. PROD-001" />
             <Field label="Unidad" value={unidad} onChangeText={setUnidad} placeholder="unidad, caja, kg…" />
           </View>
-        </View>
+        </TourTarget>
 
-        <View style={styles.card}>
+        <TourTarget id="movimiento" style={styles.card}>
           <SectionTitle number="2" title="Nuevo movimiento" />
           {hasInitialInventory ? (
             <View style={styles.typeSwitch}>
@@ -193,18 +197,17 @@ export default function Kardex() {
               <View style={styles.autoCost}><Text style={styles.fieldLabel}>Costo aplicado automáticamente</Text><Text style={styles.autoCostValue}>{money(saldo.costoPromedio)}</Text><Text style={styles.autoCostHelp}>Promedio vigente</Text></View>
             )}
           </View>
-          <Pressable onPress={agregarMovimiento} style={({ pressed }) => [styles.addButton, tipo === 'salida' && styles.exitButton, pressed && styles.pressed]}>
-            <Text style={styles.addButtonText}>{!hasInitialInventory ? '+ Registrar inventario inicial' : (tipo === 'entrada' ? '+ Registrar entrada' : '− Registrar salida')}</Text>
-          </Pressable>
-        </View>
 
-        <View style={[styles.summary, compact && styles.summaryColumn]}>
+        </TourTarget>
+
+</>} output={<>
+<TourTarget id="resumen" style={[styles.summary, compact && styles.summaryColumn]}>
           <Summary label="Existencia" value={`${saldo.cantidad.toFixed(2)} ${unidad}`} />
           <Summary label="Costo promedio" value={money(saldo.costoPromedio)} />
           <Summary label="Valor del inventario" value={money(saldo.valor)} />
-        </View>
+        </TourTarget>
 
-        <View style={styles.card}>
+        <TourTarget id="tabla" style={styles.card}>
           <SectionTitle number="3" title="Registro de movimientos" />
           {movimientos.length === 0 ? <View style={styles.empty}><Text style={styles.emptyTitle}>Aún no hay movimientos</Text><Text style={styles.emptyText}>Registra una entrada para crear el saldo inicial.</Text></View> : (
             <ScrollView horizontal showsHorizontalScrollIndicator>
@@ -214,9 +217,14 @@ export default function Kardex() {
               </View>
             </ScrollView>
           )}
-        </View>
-        <RecordActions onClear={limpiar} onPrint={imprimir} canPrint={movimientos.length > 0} accent={ACCENT} />
-        </View>
+        </TourTarget>
+</>} actions={<>
+<TourTarget id="registrar"><Pressable onPress={agregarMovimiento} style={({ pressed }) => [styles.addButton, tipo === 'salida' && styles.exitButton, pressed && styles.pressed]}>
+            <Text style={styles.addButtonText}>{!hasInitialInventory ? '+ Registrar inventario inicial' : (tipo === 'entrada' ? '+ Registrar entrada' : '− Registrar salida')}</Text>
+          </Pressable></TourTarget>
+<RecordActions record={record} onClear={limpiar} onPrint={imprimir} canPrint={!!record} accent={ACCENT} /></>} />}</TourPreview>
+
+        </View></TourScope>
 
         <View style={[styles.methodContent, method !== 'peps' && styles.hidden]}>
           <View style={styles.methodIntro}><Text style={styles.methodIntroTitle}>PEPS · Primeras entradas, primeras salidas</Text><Text style={styles.methodIntroText}>Las primeras unidades que ingresan son las primeras que se usan para valorar una venta. Cada compra se conserva como una capa independiente.</Text></View>
@@ -227,7 +235,7 @@ export default function Kardex() {
           <View style={styles.methodIntro}><Text style={styles.methodIntroTitle}>UEPS · Últimas entradas, primeras salidas</Text><Text style={styles.methodIntroText}>Las unidades compradas más recientemente son las primeras que se usan para valorar una venta. Los lotes anteriores permanecen hasta que se consuman los nuevos.</Text></View>
           <KardexPeps method="ueps" onStockWarning={setStockWarning} />
         </View>
-        </ScrollView>
+        </TourScrollView>
         <StatusBar style="dark" />
       </BlurTargetView>
 
@@ -247,7 +255,7 @@ export default function Kardex() {
           </View>
         </View>
       </Modal>
-    </View>
+    </View></GuidedTour>
   );
 }
 
@@ -279,7 +287,7 @@ function MovementGuide({ type, initial = false }) {
     ['¿Para qué sirve?', 'Reduce las existencias y el valor del inventario usando el costo promedio vigente.'],
   ];
   return (
-    <View style={[styles.movementGuide, !entry && styles.movementGuideExit]}>
+    <HelpDialog tourStep="movimiento" label="Cómo registrar" title={initial ? 'Inventario inicial' : entry ? 'Registrar una entrada' : 'Registrar una salida'} accent={DARK} soft={SOFT}>
       <Text style={styles.movementGuideTitle}>{initial ? 'Primero registra el inventario inicial' : (entry ? 'Antes de registrar la entrada' : 'Antes de registrar la salida o venta')}</Text>
       {items.map(([title, text]) => (
         <View key={title} style={styles.movementGuideRow}>
@@ -287,7 +295,7 @@ function MovementGuide({ type, initial = false }) {
           <Text style={styles.movementGuideText}>{text}</Text>
         </View>
       ))}
-    </View>
+    </HelpDialog>
   );
 }
 function Summary({ label, value }) {
@@ -300,7 +308,7 @@ function TableRow({ values, header = false }) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#FFF7FB' },
   blurTarget: { flex: 1 },
-  content: { flexGrow: 1, width: '100%', maxWidth: 960, alignSelf: 'center', padding: 16, paddingTop: 22, paddingBottom: 36, gap: 14 },
+  content: { flexGrow: 1, width: '100%', maxWidth: 1600, alignSelf: 'center', padding: 16, paddingTop: 22, paddingBottom: 36, gap: 14 },
   methodSwitcher: { width: '100%', padding: 4, flexDirection: 'row', borderRadius: 12, backgroundColor: SOFT },
   methodButton: { minHeight: 44, flex: 1, paddingHorizontal: 6, alignItems: 'center', justifyContent: 'center', borderRadius: 9 },
   methodButtonActive: { backgroundColor: ACCENT, elevation: 2 },
@@ -327,9 +335,9 @@ const styles = StyleSheet.create({
   step: { width: 29, height: 29, alignItems: 'center', justifyContent: 'center', borderRadius: 9, backgroundColor: ACCENT },
   stepText: { color: '#FFFFFF', fontWeight: '900' },
   sectionTitleText: { flex: 1, color: '#2D3047', fontSize: 17, fontWeight: '900' },
-  fieldsRow: { flexDirection: 'row', gap: 10 },
+  fieldsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   fieldsColumn: { flexDirection: 'column' },
-  field: { flex: 1, minWidth: 0, gap: 5 },
+  field: { flex: 1, minWidth: 140, gap: 5 },
   fieldLabel: { color: '#4B5563', fontSize: 11, fontWeight: '800' },
   input: { width: '100%', minHeight: 48, paddingHorizontal: 12, borderWidth: 1.5, borderColor: '#D1D5DB', borderRadius: 10, backgroundColor: '#FAFAFB', color: '#172033', fontSize: 14 },
   typeSwitch: { flexDirection: 'row', padding: 4, borderRadius: 11, backgroundColor: SOFT },

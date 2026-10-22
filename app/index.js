@@ -1,3 +1,4 @@
+import { useAccount } from '../components/AccountProvider';
 import { StatusBar } from 'expo-status-bar';
 import { Link } from 'expo-router';
 import { useState } from 'react';
@@ -60,6 +61,7 @@ const SECTORES = {
 };
 
 export default function App() {
+  const { user } = useAccount();
   const [sectorActivo, setSectorActivo] = useState('agropecuario');
   const sector = SECTORES[sectorActivo];
 
@@ -77,6 +79,8 @@ export default function App() {
             <Text style={styles.subtitle}>Selecciona un sector para consultar sus herramientas.</Text>
           </View>
         </View>
+
+        <Link href="/cuenta" style={{ color: '#1769AA', fontWeight: '700', padding: 14, alignSelf: 'center' }}>{user ? `Hola, ${user.user_metadata.app_name} · Mi cuenta e historial` : 'Modo invitado · Iniciar sesión'}</Link>
 
         <View style={styles.sectorSection}>
           <Text style={styles.sectionTitle}>Sectores técnicos</Text>
